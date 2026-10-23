@@ -1,0 +1,117 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns">
+    <div class="column is-12">
+        <div class="level mb-5">
+            <div class="level-left">
+                <div>
+                    <h1 class="title is-3">Panel de Vendedor</h1>
+                    <p class="subtitle is-6 has-text-grey">Gestiona tus publicaciones y pedidos pendientes de despacho.</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a href="{% url 'item_create' %}" class="button is-success">
+                    + Nueva Publicación
+                </a>
+            </div>
+        </div>
+
+        <!-- Sección 1: Pedidos por Despachar -->
+        <div class="box mb-5">
+            <h2 class="title is-4 mb-3">Ventas y Envíos en Curso</h2>
+            {% if sales_orders %}
+                <table class="table is-fullwidth is-striped is-hoverable is-vcentered">
+                    <thead>
+                        <tr>
+                            <th>Nº Orden</th>
+                            <th>Artículo</th>
+                            <th>Comprador</th>
+                            <th>Monto a Recibir</th>
+                            <th>Estado</th>
+                            <th>Destino</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in sales_orders %}
+                        <tr>
+                            <td class="has-text-weight-bold">#{{ order.pk }}</td>
+                            <td>{{ order.item.title }}</td>
+                            <td>{{ order.buyer.username }}</td>
+                            <td class="has-text-success has-text-weight-bold">${{ order.item.price }} CLP</td>
+                            <td>
+                                {% if order.status == 'paid_escrow' %}
+                                    <span class="tag is-warning is-light">Fondos Retenidos (Por Enviar)</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="tag is-info is-light">Enviado</span>
+                                {% elif order.status == 'delivered' %}
+                                    <span class="tag is-success is-light">Pago Liberado</span>
+                                {% else %}
+                                    <span class="tag is-light">{{ order.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="is-size-7">
+                                {% if order.status != 'pending' %}
+                                    {{ order.shipping_name }}<br>
+                                    <span class="has-text-grey">{{ order.shipping_address }}</span>
+                                {% else %}
+                                    <span class="has-text-grey-light">Oculto hasta pago</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'order_detail' order.pk %}" class="button is-small is-outlined is-info">
+                                    Ver Detalle
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="notification is-light has-text-centered is-size-7">
+                    No tienes ventas registradas por ahora.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Sección 2: Mis Ítems Publicados -->
+        <div class="box">
+            <h2 class="title is-4 mb-3">Mis Artículos Publicados</h2>
+            {% if my_items %}
+                <div class="columns is-multiline">
+                    {% for item in my_items %}
+                    <div class="column is-one-quarter">
+                        <div class="card" style="border-radius: 6px; overflow: hidden;">
+                            <div class="card-image">
+                                <figure class="image is-4by3">
+                                    {% if item.image %}
+                                        <img src="{{ item.image.url }}" alt="{{ item.title }}" style="object-fit: cover;">
+                                    {% else %}
+                                        <img src="https://via.placeholder.com/250x180?text=Sin+Foto" alt="Sin foto">
+                                    {% endif %}
+                                </figure>
+                            </div>
+                            <div class="card-content p-3">
+                                <span class="tag is-small {% if item.status == 'available' %}is-success{% elif item.status == 'in_escrow' %}is-warning{% else %}is-danger{% endif %} is-light mb-1">
+                                    {{ item.get_status_display }}
+                                </span>
+                                <p class="has-text-weight-bold is-size-6">{{ item.title }}</p>
+                                <p class="has-text-success has-text-weight-bold">${{ item.price }} CLP</p>
+                                <a href="{% url 'item_detail' item.pk %}" class="button is-small is-fullwidth is-light mt-2">
+                                    Ver Ficha
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="notification is-light has-text-centered is-size-7">
+                    Aún no has publicado ningún coleccionable a la venta.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

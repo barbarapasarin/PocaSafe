@@ -1,0 +1,73 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns is-vcentered mb-4">
+    <div class="column">
+        <h1 class="title is-3">Catálogo de Coleccionables</h1>
+        <p class="subtitle is-6 has-text-grey">Explora ítems certificados y protegidos mediante custodia transaccional.</p>
+    </div>
+</div>
+
+<!-- Filtros de categoría -->
+<div class="tabs is-toggle is-small mb-5">
+    <ul>
+        <li class="{% if not current_category %}is-active{% endif %}">
+            <a href="{% url 'item_list' %}">Todos</a>
+        </li>
+        <li class="{% if current_category == 'photocard' %}is-active{% endif %}">
+            <a href="{% url 'item_list' %}?category=photocard">Photocards K-Pop</a>
+        </li>
+        <li class="{% if current_category == 'tcg' %}is-active{% endif %}">
+            <a href="{% url 'item_list' %}?category=tcg">Cartas TCG</a>
+        </li>
+    </ul>
+</div>
+
+<!-- Grid de Cards -->
+<div class="columns is-multiline">
+    {% for item in items %}
+    <div class="column is-one-quarter-desktop is-one-third-tablet">
+        <div class="card" style="border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 100%;">
+            <div class="card-image">
+                <figure class="image">
+                    {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.title }}">
+                    {% else %}
+                        <img src="https://via.placeholder.com/300x250?text=Sin+Imagen" alt="Sin imagen">
+                    {% endif %}
+                </figure>
+            </div>
+            <div class="card-content" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div class="tags mb-2">
+                        <span class="tag is-info is-light">{{ item.get_category_display }}</span>
+                        {% if item.status == 'available' %}
+                            <span class="tag is-success is-light">Disponible</span>
+                        {% elif item.status == 'in_escrow' %}
+                            <span class="tag is-warning is-light">En Custodia</span>
+                        {% else %}
+                            <span class="tag is-danger is-light">Vendido</span>
+                        {% endif %}
+                    </div>
+                    <p class="title is-5 mb-1">{{ item.title }}</p>
+                    <p class="is-size-7 has-text-grey mb-3">Vendedor: {{ item.seller.username }}</p>
+                </div>
+
+                <div>
+                    <p class="title is-4 has-text-success mb-3">${{ item.price }} CLP</p>
+                    <a href="{% url 'item_detail' item.pk %}" class="button is-small is-fullwidth is-outlined is-success">
+                        Ver Detalles
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="column is-12">
+        <div class="notification is-light has-text-centered">
+            No hay coleccionables publicados en esta categoría todavía.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

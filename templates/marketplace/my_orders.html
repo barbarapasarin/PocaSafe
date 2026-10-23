@@ -1,0 +1,59 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-10">
+        <h1 class="title is-3 mb-2">Mis Compras Protegidas</h1>
+        <p class="subtitle is-6 has-text-grey mb-5">Seguimiento de coleccionables en custodia y despachos activos.</p>
+
+        <div class="box">
+            {% if orders %}
+                <table class="table is-fullwidth is-striped is-hoverable is-vcentered">
+                    <thead>
+                        <tr>
+                            <th>Nº Orden</th>
+                            <th>Coleccionable</th>
+                            <th>Monto</th>
+                            <th>Estado de Custodia</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td class="has-text-weight-bold">#{{ order.pk }}</td>
+                            <td>{{ order.item.title }}</td>
+                            <td class="has-text-success has-text-weight-bold">${{ order.item.price }} CLP</td>
+                            <td>
+                                {% if order.status == 'paid_escrow' %}
+                                    <span class="tag is-success is-light">Fondos en Custodia</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="tag is-info is-light">Enviado por Courier</span>
+                                {% elif order.status == 'delivered' %}
+                                    <span class="tag is-dark is-light">Recibido Conforme</span>
+                                {% else %}
+                                    <span class="tag is-warning is-light">{{ order.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="is-size-7">{{ order.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'order_detail' order.pk %}" class="button is-small is-outlined is-info">
+                                    Ver Detalle
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="notification is-light has-text-centered">
+                    Aún no has realizado ninguna compra protegida.
+                    <br><br>
+                    <a href="{% url 'item_list' %}" class="button is-success is-small">Explorar Catálogo</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-4">
+        <div class="box">
+            <h1 class="title is-4 has-text-centered mb-4">Iniciar Sesión</h1>
+            
+            {% if form.errors %}
+                <div class="notification is-danger is-light is-size-7">
+                    Usuario o contraseña incorrectos. Por favor, reintenta.
+                </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="field">
+                    <label class="label">Usuario</label>
+                    <div class="control">
+                        <input class="input" type="text" name="username" placeholder="Tu usuario" required autofocus>
+                    </div>
+                </div>
+
+                <div class="field mb-5">
+                    <label class="label">Contraseña</label>
+                    <div class="control">
+                        <input class="input" type="password" name="password" placeholder="Tu contraseña" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="button is-success is-fullwidth">Entrar</button>
+            </form>
+
+            <hr>
+            <p class="is-size-7 has-text-centered">
+                ¿No tienes cuenta? <a href="{% url 'register' %}">Regístrate aquí</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-7">
+        <div class="box">
+            <h1 class="title is-4 mb-3">Resolución de Arbitraje — Orden #{{ order.pk }}</h1>
+            
+            <div class="content is-size-7">
+                <p><strong>Artículo:</strong> {{ order.item.title }} (${{ order.item.price }} CLP)</p>
+                <p><strong>Comprador:</strong> {{ order.buyer.username }} | <strong>Vendedor:</strong> {{ order.item.seller.username }}</p>
+                <p><strong>Tracking informado:</strong> {{ order.tracking_number|default:"No informado" }}</p>
+                <div class="notification is-warning is-light">
+                    <strong>Motivo de la Disputa:</strong><br>
+                    {{ order.dispute_reason }}
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="field mb-3">
+                    <label class="label is-size-7">Dictamen / Notas de Mediación</label>
+                    <div class="control">
+                        <textarea class="textarea is-small" name="admin_notes" rows="3" placeholder="Fundamento de la resolución (ej. Comprobante de envío inválido / Producto conforme según fotos)..." required></textarea>
+                    </div>
+                </div>
+
+                <div class="columns mt-4">
+                    <div class="column is-6">
+                        <button type="submit" name="resolution" value="release_seller" class="button is-success is-fullwidth">
+                            Fallo a favor de Vendedor (Liberar Fondos)
+                        </button>
+                    </div>
+                    <div class="column is-6">
+                        <button type="submit" name="resolution" value="refund_buyer" class="button is-danger is-fullwidth">
+                            Fallo a favor de Comprador (Reembolsar)
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

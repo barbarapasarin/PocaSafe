@@ -1,0 +1,49 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns">
+    <div class="column is-12">
+        <h1 class="title is-3 mb-2">Panel de Mediación de Conflictos</h1>
+        <p class="subtitle is-6 has-text-grey mb-5">Supervisión y resolución de órdenes disputadas con fondos congelados.</p>
+
+        <div class="box">
+            {% if orders %}
+                <table class="table is-fullwidth is-striped is-hoverable is-vcentered">
+                    <thead>
+                        <tr>
+                            <th>Nº Orden</th>
+                            <th>Coleccionable</th>
+                            <th>Comprador</th>
+                            <th>Vendedor</th>
+                            <th>Monto Congelado</th>
+                            <th>Motivo del Reclamo</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td class="has-text-weight-bold">#{{ order.pk }}</td>
+                            <td>{{ order.item.title }}</td>
+                            <td>{{ order.buyer.username }}</td>
+                            <td>{{ order.item.seller.username }}</td>
+                            <td class="has-text-danger has-text-weight-bold">${{ order.item.price }} CLP</td>
+                            <td class="is-size-7">{{ order.dispute_reason|truncatechars:60 }}</td>
+                            <td>
+                                <a href="{% url 'resolve_dispute' order.pk %}" class="button is-small is-danger">
+                                    Mediar Caso
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="notification is-success is-light has-text-centered">
+                    No existen órdenes en disputa actualmente. El ecosistema opera con normalidad.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

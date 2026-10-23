@@ -1,0 +1,112 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-7">
+        <div class="box">
+            <!-- Badge de Estado General -->
+            <div class="tags mb-2">
+                {% if order.status == 'disputed' %}
+                    <span class="tag is-danger is-medium">En Mediación / Disputa</span>
+                {% elif order.status == 'delivered' %}
+                    <span class="tag is-dark is-medium">Completada / Pago Liberado</span>
+                {% elif order.status == 'shipped' %}
+                    <span class="tag is-info is-medium">Enviada con Courier</span>
+                {% else %}
+                    <span class="tag is-success is-medium">Fondos en Custodia Lógica (Escrow)</span>
+                {% endif %}
+            </div>
+
+            <h1 class="title is-3">Orden #{{ order.pk }}</h1>
+            <p class="subtitle is-6 has-text-grey">Artículo: <strong>{{ order.item.title }}</strong></p>
+            
+            <hr>
+
+            <!-- Datos de la Transacción -->
+            <div class="columns">
+                <div class="column is-6">
+                    <p class="is-size-7 has-text-grey">Comprador</p>
+                    <p class="has-text-weight-bold">{{ order.buyer.username }}</p>
+                    
+                    <p class="is-size-7 has-text-grey mt-3">Vendedor</p>
+                    <p class="has-text-weight-bold">{{ order.item.seller.username }}</p>
+                </div>
+                <div class="column is-6">
+                    <p class="is-size-7 has-text-grey">Monto Protegido</p>
+                    <p class="title is-4 has-text-success">${{ order.item.price }} CLP</p>
+                    
+                    <p class="is-size-7 has-text-grey mt-2">Destino de Despacho</p>
+                    <p class="is-size-7">{{ order.shipping_name }} — {{ order.shipping_address }}</p>
+                </div>
+            </div>
+
+            <!-- Regla de Liberación -->
+            <div class="notification is-light mt-4">
+                <p class="is-size-7">
+                    <strong>Regla de Liberación:</strong> El vendedor realiza el despacho y registra el código de seguimiento. Una vez recibido conforme por el comprador (o transcurridos 5 días hábiles), los fondos serán liberados.
+                </p>
+            </div>
+
+            <!-- Número de Envío si ya fue despachado -->
+            {% if order.tracking_number %}
+                <div class="notification is-info is-light mt-4">
+                    <strong>Número de Envío / Courier:</strong> {{ order.tracking_number }}
+                </div>
+            {% endif %}
+
+            <!-- ACCIÓN VENDEDOR: Si está pagado y aún no despacha -->
+            {% if order.item.seller == user and order.status == 'paid_escrow' %}
+                <div class="box has-background-warning-light mt-4">
+                    <h4 class="title is-6 mb-2">Despacho de la Orden:</h4>
+                    <p class="is-size-7 mb-3">Prepara el envío a nombre de <strong>{{ order.shipping_name }}</strong> a la dirección <strong>{{ order.shipping_address }}</strong> e ingresa el código de seguimiento:</p>
+                    <form method="post" action="{% url 'mark_as_shipped' order.pk %}">
+                        {% csrf_token %}
+                        <div class="field has-addons">
+                            <div class="control is-expanded">
+                                <input class="input is-small" type="text" name="tracking_number" placeholder="Ej. Starken 984729182 / Chilexpress 77281" required>
+                            </div>
+                            <div class="control">
+                                <button type="submit" class="button is-info is-small">Marcar como Enviado</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            {% endif %}
+
+            <!-- AVISO DE DISPUTA ABIERTA -->
+            {% if order.status == 'disputed' %}
+                <div class="notification is-danger is-light mt-4">
+                    <h4 class="title is-6 has-text-danger mb-1">Orden en Proceso de Mediación</h4>
+                    <p class="is-size-7 mb-2"><strong>Motivo reportado:</strong> {{ order.dispute_reason }}</p>
+                    <p class="is-size-7 has-text-grey">Los fondos están congelados. Un administrador revisará los antecedentes para dictaminar la liberación o el reembolso.</p>
+                </div>
+            {% endif %}
+
+            <!-- ACCIONES COMPRADOR: Confirmar o Reportar Problema -->
+            {% if order.buyer == user and order.status in 'paid_escrow,shipped' %}
+                <div class="columns mt-4">
+                    <div class="column is-8">
+                        <form method="post" action="{% url 'confirm_delivery' order.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="button is-success is-fullwidth" onclick="return confirm('¿Confirmas que recibiste el artículo en condiciones óptimas? Se liberará el pago al vendedor.');">
+                                Confirmar Recepción (Liberar Pago)
+                            </button>
+                        </form>
+                    </div>
+                    <div class="column is-4">
+                        <a href="{% url 'open_dispute' order.pk %}" class="button is-danger is-outlined is-fullwidth">
+                            Reportar Problema
+                        </a>
+                    </div>
+                </div>
+            {% elif order.status == 'delivered' %}
+                <div class="notification is-success is-light mt-4 has-text-centered">
+                    <strong>Transacción Finalizada:</strong> Se confirmó la recepción conforme y el pago fue acreditado al vendedor.
+                </div>
+            {% endif %}
+
+            <a href="{% url 'item_list' %}" class="button is-outlined is-fullwidth mt-4">Volver al Catálogo</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

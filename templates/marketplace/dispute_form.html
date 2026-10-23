@@ -1,0 +1,31 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-6">
+        <div class="box">
+            <h1 class="title is-4 has-text-danger mb-2">Abrir Disputa / Mediación</h1>
+            <p class="subtitle is-6 has-text-grey">Orden #{{ order.pk }} — {{ order.item.title }}</p>
+
+            <div class="notification is-warning is-light is-size-7 mb-4">
+                <strong>Advertencia:</strong> Al abrir una disputa, los fondos retenidos en custodia se congelan inmediatamente y no podrán ser retirados por el vendedor hasta que el equipo mediador revise las pruebas.
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="field mb-4">
+                    <label class="label">Motivo detallado del reclamo</label>
+                    <div class="control">
+                        <textarea class="textarea" name="dispute_reason" rows="4" placeholder="Ej. El paquete llegó abierto, la photocard tiene un pliegue grave no informado o el número de tracking no registra movimiento..." required></textarea>
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button type="submit" class="button is-danger is-fullwidth">Congelar Fondos y Enviar a Mediación</button>
+                    <a href="{% url 'order_detail' order.pk %}" class="button is-light is-fullwidth">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PocaSafe | Marketplace Seguro{% endblock %}</title>
+    <!-- Bulma CSS CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <style>
+        .card-image img {
+            object-fit: cover;
+            height: 250px;
+            width: 100%;
+        }
+        .is-matcha {
+            background-color: #2e7d32;
+            color: #ffffff;
+        }
+        .is-matcha:hover {
+            background-color: #1b5e20;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="has-background-light" style="min-height: 100vh; display: flex; flex-direction: column;">
+
+    <!-- Navbar -->
+    <nav class="navbar is-white has-shadow" role="navigation" aria-label="main navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-4 has-text-success" href="{% url 'item_list' %}">
+                    PocaSafe
+                </a>
+            </div>
+
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" href="{% url 'item_list' %}">Catálogo</a>
+                    <a class="navbar-item" href="{% url 'item_list' %}?category=photocard">Photocards</a>
+                    <a class="navbar-item" href="{% url 'item_list' %}?category=tcg">Cartas TCG</a>
+                </div>
+
+                <div class="navbar-end">
+                    <div class="navbar-item">
+                        <div class="buttons">
+                            {% if user.is_authenticated %}
+                                <a class="button is-success is-small" href="{% url 'item_create' %}">
+                                    + Publicar Ítem
+                                </a>
+                                <a class="button is-light is-small" href="{% url 'my_orders' %}">
+                                    Mis Compras
+                                </a>
+                                <a class="button is-light is-small" href="{% url 'my_sales' %}">
+                                    Mis Ventas
+                                </a>
+
+                                <!-- Si el usuario es administrador/staff, ve Mediación y Panel Admin -->
+                                {% if user.is_staff %}
+                                    <a class="button is-danger is-light is-small" href="{% url 'dispute_dashboard' %}">
+                                        ⚖️ Mediaciones
+                                    </a>
+                                    <a class="button is-dark is-small" href="/admin/" target="_blank">
+                                        ⚙️ Django Admin
+                                    </a>
+                                {% endif %}
+
+                                <span class="tag is-success is-light is-small">Hola, {{ user.username }}</span>
+                                <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="button is-white is-small has-text-grey">Cerrar Sesión</button>
+                                </form>
+                            {% else %}
+                                <a class="button is-success is-outlined is-small" href="{% url 'login' %}">
+                                    Iniciar Sesión
+                                </a>
+                                <a class="button is-success is-small" href="{% url 'register' %}">
+                                    Registrarse
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido dinámico -->
+    <main class="section" style="flex: 1;">
+        <div class="container">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer py-4 has-background-white">
+        <div class="content has-text-centered is-size-7">
+            <p><strong>PocaSafe</strong> · Comercio C2C Seguro de Coleccionables con Custodia Lógica (Escrow).</p>
+        </div>
+    </footer>
+
+</body>
+</html>

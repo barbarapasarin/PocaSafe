@@ -1,0 +1,48 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-6">
+        <div class="box">
+            <h1 class="title is-4 mb-4">Publicar un Coleccionable</h1>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="field">
+                    <label class="label">Título de la publicación</label>
+                    <div class="control">{{ form.title }}</div>
+                </div>
+
+                <div class="columns">
+                    <div class="column is-6">
+                        <div class="field">
+                            <label class="label">Categoría</label>
+                            <div class="control select is-fullwidth">{{ form.category }}</div>
+                        </div>
+                    </div>
+                    <div class="column is-6">
+                        <div class="field">
+                            <label class="label">Precio (CLP)</label>
+                            <div class="control">{{ form.price }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Descripción y estado del ítem</label>
+                    <div class="control">{{ form.description }}</div>
+                </div>
+
+                <div class="field mb-5">
+                    <label class="label">Fotografía del coleccionable</label>
+                    <div class="control">{{ form.image }}</div>
+                </div>
+
+                <div class="buttons">
+                    <button type="submit" class="button is-success is-fullwidth">Publicar en Catálogo</button>
+                    <a href="{% url 'item_list' %}" class="button is-light is-fullwidth">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
