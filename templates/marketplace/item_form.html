@@ -39,9 +39,19 @@
                     <p class="help has-text-grey">Ej: BTS, RM, Album PC, Indigo (o ATEEZ, San, Movement)</p>
                 </div>
 
+                <!-- SELECTOR DE FOTOGRAFÍA ESTILIZADO -->
                 <div class="field mb-5">
                     <label class="label">Fotografía del coleccionable</label>
-                    <div class="control">{{ form.image }}</div>
+                    <div class="file has-name is-fullwidth">
+                        <label class="file-label">
+                            {{ form.image }}
+                            <span class="file-cta">
+                                <span class="file-icon">📁</span>
+                                <span class="file-label">Seleccionar imagen…</span>
+                            </span>
+                            <span class="file-name" id="file-name-display">Ningún archivo seleccionado</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="buttons">
@@ -52,4 +62,18 @@
         </div>
     </div>
 </div>
+
+<script>
+    const fileInput = document.querySelector('.file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', () => {
+            const fileNameDisplay = document.querySelector('#file-name-display');
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.textContent = fileInput.files[0].name;
+            } else {
+                fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+            }
+        });
+    }
+</script>
 {% endblock %}
