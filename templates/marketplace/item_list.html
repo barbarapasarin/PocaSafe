@@ -9,19 +9,39 @@
 </div>
 
 <!-- Filtros de categoría -->
-<div class="tabs is-toggle is-small mb-5">
+<div class="tabs is-toggle is-small mb-4">
     <ul>
         <li class="{% if not current_category %}is-active{% endif %}">
-            <a href="{% url 'item_list' %}">Todos</a>
+            <a href="{% url 'item_list' %}{% if search_query %}?q={{ search_query }}{% endif %}">Todos</a>
         </li>
         <li class="{% if current_category == 'photocard' %}is-active{% endif %}">
-            <a href="{% url 'item_list' %}?category=photocard">Photocards K-Pop</a>
+            <a href="{% url 'item_list' %}?category=photocard{% if search_query %}&q={{ search_query }}{% endif %}">Photocards K-Pop</a>
         </li>
         <li class="{% if current_category == 'tcg' %}is-active{% endif %}">
-            <a href="{% url 'item_list' %}?category=tcg">Cartas TCG</a>
+            <a href="{% url 'item_list' %}?category=tcg{% if search_query %}&q={{ search_query }}{% endif %}">Cartas TCG</a>
         </li>
     </ul>
 </div>
+
+<!-- BARRA DE BÚSQUEDA -->
+<form method="get" action="{% url 'item_list' %}" class="mb-5">
+    <div class="field has-addons">
+        <div class="control is-expanded">
+            <input class="input" type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar por artista, grupo, set o título (ej. Jungkook, Charizard)...">
+        </div>
+        {% if current_category %}
+            <input type="hidden" name="category" value="{{ current_category }}">
+        {% endif %}
+        <div class="control">
+            <button type="submit" class="button is-success">Buscar</button>
+        </div>
+        {% if search_query %}
+            <div class="control">
+                <a href="{% url 'item_list' %}{% if current_category %}?category={{ current_category }}{% endif %}" class="button is-light">Limpiar</a>
+            </div>
+        {% endif %}
+    </div>
+</form>
 
 <!-- Grid de Cards -->
 <div class="columns is-multiline">
@@ -50,7 +70,12 @@
                         {% endif %}
                     </div>
                     <p class="title is-5 mb-1">{{ item.title }}</p>
-                    <p class="is-size-7 has-text-grey mb-3">Vendedor: {{ item.seller.username }}</p>
+                    <p class="is-size-7 has-text-grey mb-3">
+                        Vendedor: 
+                        <a href="{% url 'user_profile' item.seller.username %}" class="has-text-grey-dark has-text-weight-semibold">
+                            {{ item.seller.username }}
+                        </a>
+                    </p>
                 </div>
 
                 <div>
@@ -65,7 +90,11 @@
     {% empty %}
     <div class="column is-12">
         <div class="notification is-light has-text-centered">
-            No hay coleccionables publicados en esta categoría todavía.
+            {% if search_query %}
+                No se encontraron coleccionables que coincidan con "<strong>{{ search_query }}</strong>".
+            {% else %}
+                No hay coleccionables publicados en esta categoría todavía.
+            {% endif %}
         </div>
     </div>
     {% endfor %}

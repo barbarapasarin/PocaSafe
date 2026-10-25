@@ -1,6 +1,9 @@
 from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import Avg
+
 
 # 1. Perfil / Datos de usuario
 class Profile(models.Model):
@@ -40,7 +43,7 @@ class CollectibleItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.title} - ${self.price} ({self.status})"
+        return f"{self.title} - ${self.price} CLP ({self.status})"
 
 
 # 3. Orden con Custodia Lógica (Escrow)
@@ -59,9 +62,9 @@ class Order(models.Model):
     shipping_name = models.CharField(max_length=150)
     shipping_address = models.CharField(max_length=255)
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
-    status = models.CharField(max_length=20, choices=ORDER_STATUS, default='paid_escrow')  # <-- Corregido ORDER_STATUS
+    status = models.CharField(max_length=20, choices=ORDER_STATUS, default='paid_escrow')
     
-    # Nuevos campos para mediación y disputas
+    # Campos para mediación y disputas
     dispute_reason = models.TextField(blank=True, null=True)
     dispute_created_at = models.DateTimeField(blank=True, null=True)
     admin_notes = models.TextField(blank=True, null=True, help_text="Resolución del mediador/administrador")
@@ -72,10 +75,8 @@ class Order(models.Model):
     def __str__(self):
         return f"Orden #{self.pk} - {self.item.title} ({self.status})"
 
-    from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db.models import Avg
 
-# Agrega este modelo al final de marketplace/models.py
+# 4. Sistema de Reseñas / Calificaciones
 class Review(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='review')
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_written')

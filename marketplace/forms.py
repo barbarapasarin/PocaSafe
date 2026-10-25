@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Profile, CollectibleItem, Order
+from .models import Profile, CollectibleItem, Order, Review
+
 
 class RegisterForm(UserCreationForm):
     first_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre'}))
@@ -27,6 +28,7 @@ class RegisterForm(UserCreationForm):
             )
         return user
 
+
 class CollectibleItemForm(forms.ModelForm):
     class Meta:
         model = CollectibleItem
@@ -39,6 +41,7 @@ class CollectibleItemForm(forms.ModelForm):
             'image': forms.FileInput(attrs={'class': 'file-input'}),
         }
 
+
 class OrderCreateForm(forms.ModelForm):
     class Meta:
         model = Order
@@ -48,7 +51,6 @@ class OrderCreateForm(forms.ModelForm):
             'shipping_address': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Dirección de despacho (Comuna, Ciudad)'}),
         }
 
-        from .models import Review
 
 class ReviewForm(forms.ModelForm):
     RATING_CHOICES = [
