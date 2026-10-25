@@ -101,7 +101,6 @@ USE_TZ = True
 # Archivos estáticos (CSS, JS)
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Configuración de Cloudinary
 CLOUDINARY_STORAGE = {
@@ -110,17 +109,15 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
+# Almacenamiento desacoplado (Django 4.2+ / 5+ / 6+)
 STORAGES = {
     "default": {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",  
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
-
-# Mantener por retrocompatibilidad si alguna librería de terceros aún lo lee:
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Redirecciones de autenticación
 LOGIN_URL = 'login'
