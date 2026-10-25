@@ -4,12 +4,12 @@
 <div class="columns is-vcentered mb-4">
     <div class="column">
         <h1 class="title is-3">Catálogo de Coleccionables</h1>
-        <p class="subtitle is-6 has-text-grey">Explora ítems certificados y protegidos mediante custodia transaccional.</p>
+        <p class="subtitle is-6 has-text-grey">Explora photocards y cartas protegidas con custodia transaccional.</p>
     </div>
 </div>
 
 <!-- Filtros de categoría -->
-<div class="tabs is-toggle is-small mb-4">
+<div class="tabs is-toggle is-small mb-3">
     <ul>
         <li class="{% if not current_category %}is-active{% endif %}">
             <a href="{% url 'item_list' %}{% if search_query %}?q={{ search_query }}{% endif %}">Todos</a>
@@ -23,11 +23,11 @@
     </ul>
 </div>
 
-<!-- BARRA DE BÚSQUEDA -->
-<form method="get" action="{% url 'item_list' %}" class="mb-5">
+<!-- Barra de Búsqueda -->
+<form method="get" action="{% url 'item_list' %}" class="mb-3">
     <div class="field has-addons">
         <div class="control is-expanded">
-            <input class="input" type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar por artista, grupo, set o título (ej. Jungkook, Charizard)...">
+            <input class="input" type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar por grupo, integrante, tipo o set (ej. BTS, San, Indigo)...">
         </div>
         {% if current_category %}
             <input type="hidden" name="category" value="{{ current_category }}">
@@ -35,13 +35,28 @@
         <div class="control">
             <button type="submit" class="button is-success">Buscar</button>
         </div>
-        {% if search_query %}
+        {% if search_query or current_tag %}
             <div class="control">
-                <a href="{% url 'item_list' %}{% if current_category %}?category={{ current_category }}{% endif %}" class="button is-light">Limpiar</a>
+                <a href="{% url 'item_list' %}{% if current_category %}?category={{ current_category }}{% endif %}" class="button is-light">Limpiar Filtros</a>
             </div>
         {% endif %}
     </div>
 </form>
+
+<!-- Chips de Acceso Rápido (Tags) -->
+<div class="field is-grouped is-grouped-multiline mb-5">
+    <div class="control">
+        <span class="is-size-7 has-text-grey mr-2" style="line-height: 2;">Filtros rápidos:</span>
+    </div>
+    {% for ft in featured_tags %}
+        <div class="control">
+            <a href="{% url 'item_list' %}?tag={{ ft }}{% if current_category %}&category={{ current_category }}{% endif %}" 
+               class="tag {% if current_tag == ft %}is-success{% else %}is-light{% endif %} is-rounded">
+                #{{ ft }}
+            </a>
+        </div>
+    {% endfor %}
+</div>
 
 <!-- Grid de Cards -->
 <div class="columns is-multiline">
@@ -59,17 +74,24 @@
             </div>
             <div class="card-content" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
-                    <div class="tags mb-2">
-                        <span class="tag is-info is-light">{{ item.get_category_display }}</span>
+                    <div class="tags mb-1">
+                        <span class="tag is-info is-light is-small">{{ item.get_category_display }}</span>
                         {% if item.status == 'available' %}
-                            <span class="tag is-success is-light">Disponible</span>
-                        {% elif item.status == 'in_escrow' %}
-                            <span class="tag is-warning is-light">En Custodia</span>
-                        {% else %}
-                            <span class="tag is-danger is-light">Vendido</span>
+                            <span class="tag is-success is-light is-small">Disponible</span>
                         {% endif %}
                     </div>
+                    
                     <p class="title is-5 mb-1">{{ item.title }}</p>
+                    
+                    <!-- Muestra de tags si existen -->
+                    {% if item.tags %}
+                        <div class="tags mb-2">
+                            {% for tag in item.tags.split %}
+                                <span class="tag is-white is-size-7 p-0 mr-1 has-text-grey">#{{ tag|cut:',' }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
                     <p class="is-size-7 has-text-grey mb-3">
                         Vendedor: 
                         <a href="{% url 'user_profile' item.seller.username %}" class="has-text-grey-dark has-text-weight-semibold">
@@ -90,11 +112,7 @@
     {% empty %}
     <div class="column is-12">
         <div class="notification is-light has-text-centered">
-            {% if search_query %}
-                No se encontraron coleccionables que coincidan con "<strong>{{ search_query }}</strong>".
-            {% else %}
-                No hay coleccionables publicados en esta categoría todavía.
-            {% endif %}
+            No se encontraron publicaciones con esos criterios.
         </div>
     </div>
     {% endfor %}

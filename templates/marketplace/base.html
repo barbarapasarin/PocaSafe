@@ -20,6 +20,31 @@
             background-color: #1b5e20;
             color: #ffffff;
         }
+
+        /* Correcciones de espaciado global (anti-solapamiento Bulma) */
+        .title, .subtitle {
+            line-height: 1.35 !important;
+        }
+        
+        .title:not(:last-child) {
+            margin-bottom: 0.65rem !important;
+        }
+
+        .subtitle:not(:last-child) {
+            margin-bottom: 1rem !important;
+        }
+
+        .tags:not(:last-child) {
+            margin-bottom: 0.5rem !important;
+        }
+
+        .field:not(:last-child) {
+            margin-bottom: 1rem !important;
+        }
+
+        .card-content p {
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body class="has-background-light" style="min-height: 100vh; display: flex; flex-direction: column;">

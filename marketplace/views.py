@@ -93,24 +93,39 @@ def register(request):
 
 
 def item_list(request):
-    """Vista principal: Catálogo de ítems disponibles con filtros y búsqueda"""
+    """Vista principal: Catálogo con soporte de filtros por categoría, tag y texto"""
     query = request.GET.get('q', '').strip()
     category_filter = request.GET.get('category')
+    tag_filter = request.GET.get('tag', '').strip()
+
     items = CollectibleItem.objects.filter(status='available').order_by('-created_at')
 
+    # Filtro de categoría fija (photocard / tcg / other)
     if category_filter:
         items = items.filter(category=category_filter)
+
+    # Filtro directo por tag (ej. al pinchar chip de BTS o ATEEZ)
+    if tag_filter:
+        items = items.filter(tags__icontains=tag_filter)
+
+    # Búsqueda libre en título, descripción y etiquetas
     if query:
         items = items.filter(
-            Q(title__icontains=query) | Q(description__icontains=query)
+            Q(title__icontains=query) | 
+            Q(description__icontains=query) | 
+            Q(tags__icontains=query)
         )
+
+    # Tags destacados para los chips de prueba rápida
+    featured_tags = ['BTS', 'ATEEZ', 'RM', 'San', 'Seonghwa', 'Album PC', 'Pikachu']
 
     return render(request, 'marketplace/item_list.html', {
         'items': items,
         'current_category': category_filter,
+        'current_tag': tag_filter,
         'search_query': query,
+        'featured_tags': featured_tags,
     })
-
 
 def item_detail(request, pk):
     """Vista de detalle con formulario de compra segura"""

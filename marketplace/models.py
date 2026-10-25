@@ -37,10 +37,22 @@ class CollectibleItem(models.Model):
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='photocard')
+    tags = models.CharField(
+        max_length=200, 
+        blank=True, 
+        help_text="Etiquetas separadas por comas (ej. BTS, RM, Album PC)"
+    )
     price = models.PositiveIntegerField(help_text="Precio en CLP")
     image = models.ImageField(upload_to='collectibles/', blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        super().clean()
+        # Normalizar tags: elimina espacios innecesarios y pasa a minúsculas limpias
+        if self.tags:
+            tag_list = [t.strip().title() for t in self.tags.split(',') if t.strip()]
+            self.tags = ", ".join(tag_list)
 
     def __str__(self):
         return f"{self.title} - ${self.price} CLP ({self.status})"

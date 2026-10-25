@@ -32,12 +32,16 @@ class RegisterForm(UserCreationForm):
 class CollectibleItemForm(forms.ModelForm):
     class Meta:
         model = CollectibleItem
-        fields = ['title', 'category', 'price', 'description', 'image']
+        fields = ['title', 'category', 'tags', 'price', 'description', 'image']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ej. Photocard Jungkook Golden Target'}),
+            'title': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ej. Photocard RM Indigo'}),
             'category': forms.Select(attrs={'class': 'select'}),
+            'tags': forms.TextInput(attrs={
+                'class': 'input', 
+                'placeholder': 'Ej: BTS, RM, Album PC, Indigo (separados por coma)'
+            }),
             'price': forms.NumberInput(attrs={'class': 'input', 'placeholder': 'Precio en CLP'}),
-            'description': forms.Textarea(attrs={'class': 'textarea', 'rows': 3, 'placeholder': 'Detalles del estado de la carta, embalaje, etc.'}),
+            'description': forms.Textarea(attrs={'class': 'textarea', 'rows': 3, 'placeholder': 'Detalles del estado de la carta, embalaje, toploader, etc.'}),
             'image': forms.FileInput(attrs={'class': 'file-input'}),
         }
 
