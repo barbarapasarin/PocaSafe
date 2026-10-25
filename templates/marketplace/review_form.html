@@ -1,0 +1,38 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns is-centered">
+    <div class="column is-6">
+        <div class="box">
+            <h1 class="title is-4 mb-2">Calificar al Vendedor</h1>
+            <p class="subtitle is-6 has-text-grey mb-4">
+                Transacción: Orden #{{ order.pk }} · <strong>{{ order.item.title }}</strong>
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="field mb-4">
+                    <label class="label">{{ form.rating.label }}</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            {{ form.rating }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field mb-4">
+                    <label class="label">{{ form.comment.label }}</label>
+                    <div class="control">
+                        {{ form.comment }}
+                    </div>
+                </div>
+
+                <div class="buttons mt-5">
+                    <button type="submit" class="button is-success is-fullwidth">Publicar Calificación</button>
+                    <a href="{% url 'order_detail' order.pk %}" class="button is-light is-fullwidth">Omitir por ahora</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

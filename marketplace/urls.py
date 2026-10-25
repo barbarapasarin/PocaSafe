@@ -22,4 +22,7 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('login/', auth_views.LoginView.as_view(template_name='marketplace/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('order/<int:pk>/review/', views.leave_review, name='leave_review'),
+    path('profile/<str:username>/', views.user_profile, name='user_profile'),
+
 ]

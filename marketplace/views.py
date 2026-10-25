@@ -7,6 +7,9 @@ from .models import CollectibleItem, Order
 from .forms import CollectibleItemForm, OrderCreateForm, RegisterForm
 from django.utils import timezone
 from django.contrib.admin.views.decorators import staff_member_required
+from .models import CollectibleItem, Order, Profile, Review
+from .forms import CollectibleItemForm, OrderCreateForm, RegisterForm, ReviewForm
+
 
 @login_required
 def open_dispute(request, pk):
@@ -219,3 +222,40 @@ def mark_as_shipped(request, pk):
             messages.error(request, 'Debes ingresar un número de seguimiento válido.')
             
     return redirect('order_detail', pk=order.pk)
+
+@login_required
+def leave_review(request, pk):
+    """Permite al comprador calificar al vendedor tras finalizar la orden"""
+    order = get_object_or_404(Order, pk=pk, buyer=request.user, status='delivered')
+    
+    # Evitar calificaciones duplicadas sobre la misma orden
+    if hasattr(order, 'review'):
+        messages.info(request, 'Ya has calificado esta transacción.')
+        return redirect('order_detail', pk=order.pk)
+        
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.order = order
+            review.reviewer = request.user
+            review.reviewed_user = order.item.seller
+            review.save()
+            messages.success(request, '¡Calificación registrada con éxito! La reputación del vendedor se ha actualizado.')
+            return redirect('order_detail', pk=order.pk)
+    else:
+        form = ReviewForm()
+        
+    return render(request, 'marketplace/review_form.html', {'form': form, 'order': order})
+
+def user_profile(request, username):
+    """Perfil público del coleccionista: reputación, comentarios e inventario activo"""
+    user_target = get_object_or_404(User, username=username)
+    items = CollectibleItem.objects.filter(seller=user_target, status='available').order_by('-created_at')
+    reviews = Review.objects.filter(reviewed_user=user_target).order_by('-created_at')
+    
+    return render(request, 'marketplace/user_profile.html', {
+        'user_target': user_target,
+        'items': items,
+        'reviews': reviews,
+    })

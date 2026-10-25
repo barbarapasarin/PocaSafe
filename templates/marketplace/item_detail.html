@@ -2,83 +2,94 @@
 
 {% block content %}
 <nav class="breadcrumb is-small" aria-label="breadcrumbs">
-    <ul>
-        <li><a href="{% url 'item_list' %}">Catálogo</a></li>
-        <li class="is-active"><a href="#" aria-current="page">{{ item.title }}</a></li>
-    </ul>
+  <ul>
+    <li><a href="{% url 'item_list' %}">Catálogo</a></li>
+    <li class="is-active"><a href="#" aria-current="page">{{ item.title }}</a></li>
+  </ul>
 </nav>
 
 <div class="box">
-    <div class="columns">
-        <!-- Imagen -->
-        <div class="column is-5">
-            <figure class="image">
-                {% if item.image %}
-                    <img src="{{ item.image.url }}" alt="{{ item.title }}" style="border-radius: 8px; max-height: 450px; object-fit: contain; width: 100%;">
-                {% else %}
-                    <img src="https://via.placeholder.com/400x400?text=Sin+Imagen" alt="Sin imagen">
-                {% endif %}
-            </figure>
-        </div>
-
-        <!-- Información -->
-        <div class="column is-7">
-            <div class="tags mb-2">
-                <span class="tag is-info is-light">{{ item.get_category_display }}</span>
-                {% if item.status == 'available' %}
-                    <span class="tag is-success is-light">Disponible</span>
-                {% elif item.status == 'in_escrow' %}
-                    <span class="tag is-warning is-light">En Custodia</span>
-                {% else %}
-                    <span class="tag is-danger is-light">Vendido</span>
-                {% endif %}
-            </div>
-
-            <h1 class="title is-2 mb-2">{{ item.title }}</h1>
-            <p class="title is-3 has-text-success">${{ item.price }} CLP</p>
-            
-            <hr>
-
-            <div class="content">
-                <h4 class="is-size-6 has-text-weight-bold">Descripción del Coleccionable:</h4>
-                <p>{{ item.description|default:"Sin descripción detallada proporcionada por el vendedor." }}</p>
-            </div>
-
-            <!-- Caja informativa de Custodia -->
-            <div class="notification is-success is-light">
-                <p class="has-text-weight-bold mb-1">🛡️ Garantía PocaSafe (Escrow Lógico):</p>
-                <p class="is-size-7">Tu pago no se transfiere al vendedor de inmediato. Queda resguardado en la plataforma y solo se libera cuando confirmas que recibiste el coleccionable en óptimas condiciones.</p>
-            </div>
-
-            <!-- Botón de Compra -->
-            {% if item.status == 'available' %}
-                {% if user.is_authenticated %}
-                    {% if user != item.seller %}
-                        <form method="post" action="{% url 'buy_item' item.pk %}">
-                            {% csrf_token %}
-                            <div class="box has-background-white-ter mb-3">
-                                <h4 class="title is-6 mb-2">Datos para el Despacho Seguro:</h4>
-                                <div class="field mb-2">{{ order_form.shipping_name }}</div>
-                                <div class="field mb-3">{{ order_form.shipping_address }}</div>
-                                <button type="submit" class="button is-success is-fullwidth">
-                                    Iniciar Compra Segura (Retener Fondos)
-                                </button>
-                            </div>
-                        </form>
-                    {% else %}
-                        <div class="notification is-warning is-light is-size-7">Esta publicación es tuya.</div>
-                    {% endif %}
-                {% else %}
-                    <a href="/admin/login/?next={{ request.path }}" class="button is-success is-fullwidth">
-                        Inicia sesión para comprar con Custodia
-                    </a>
-                {% endif %}
-            {% else %}
-                <button class="button is-static is-medium is-fullwidth">
-                    Artículo No Disponible ({{ item.get_status_display }})
-                </button>
-            {% endif %}
-        </div>
+  <div class="columns">
+    <!-- Imagen -->
+    <div class="column is-5">
+      <figure class="image">
+        {% if item.image %}
+          <img src="{{ item.image.url }}" alt="{{ item.title }}" style="border-radius: 8px; max-height: 450px; object-fit: contain; width: 100%;">
+        {% else %}
+          <img src="https://via.placeholder.com/400x400?text=Sin+Imagen" alt="Sin imagen">
+        {% endif %}
+      </figure>
     </div>
+
+    <!-- Información -->
+    <div class="column is-7">
+      <div class="tags mb-2">
+        <span class="tag is-info is-light">{{ item.get_category_display }}</span>
+        {% if item.status == 'available' %}
+          <span class="tag is-success is-light">Disponible</span>
+        {% elif item.status == 'in_escrow' %}
+          <span class="tag is-warning is-light">En Custodia</span>
+        {% else %}
+          <span class="tag is-danger is-light">Vendido</span>
+        {% endif %}
+      </div>
+
+      <h1 class="title is-2 mb-2">{{ item.title }}</h1>
+
+      <!-- VENDEDOR Y REPUTACIÓN -->
+      <p class="subtitle is-6 has-text-grey mb-3">
+        Vendedor: 
+        <a href="{% url 'user_profile' item.seller.username %}" class="has-text-weight-bold has-text-link">
+          {{ item.seller.username }}
+        </a>
+        <span class="tag is-warning is-light is-small ml-2">
+          ★ {{ item.seller.profile.reputation_score }} ({{ item.seller.profile.total_reviews }})
+        </span>
+      </p>
+
+      <p class="title is-3 has-text-success">${{ item.price }} CLP</p>
+      <hr>
+
+      <div class="content">
+        <h4 class="is-size-6 has-text-weight-bold">Descripción del Coleccionable:</h4>
+        <p>{{ item.description|default:"Sin descripción detallada proporcionada por el vendedor." }}</p>
+      </div>
+
+      <!-- Caja informativa de Custodia -->
+      <div class="notification is-success is-light">
+        <p class="has-text-weight-bold mb-1">🛡️ Garantía PocaSafe (Escrow Lógico):</p>
+        <p class="is-size-7">Tu pago no se transfiere al vendedor de inmediato. Queda resguardado en la plataforma y solo se libera cuando confirmas que recibiste el coleccionable en óptimas condiciones.</p>
+      </div>
+
+      <!-- Botón de Compra -->
+      {% if item.status == 'available' %}
+        {% if user.is_authenticated %}
+          {% if user != item.seller %}
+            <form method="post" action="{% url 'buy_item' item.pk %}">
+              {% csrf_token %}
+              <div class="box has-background-white-ter mb-3">
+                <h4 class="title is-6 mb-2">Datos para el Despacho Seguro:</h4>
+                <div class="field mb-2">{{ order_form.shipping_name }}</div>
+                <div class="field mb-3">{{ order_form.shipping_address }}</div>
+                <button type="submit" class="button is-success is-fullwidth">
+                  Iniciar Compra Segura (Retener Fondos)
+                </button>
+              </div>
+            </form>
+          {% else %}
+            <div class="notification is-warning is-light is-size-7">Esta publicación es tuya.</div>
+          {% endif %}
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.path }}" class="button is-success is-fullwidth">
+            Inicia sesión para comprar con Custodia
+          </a>
+        {% endif %}
+      {% else %}
+        <button class="button is-static is-medium is-fullwidth">
+          Artículo No Disponible ({{ item.get_status_display }})
+        </button>
+      {% endif %}
+    </div>
+  </div>
 </div>
 {% endblock %}

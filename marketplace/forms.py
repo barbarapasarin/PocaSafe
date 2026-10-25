@@ -47,3 +47,32 @@ class OrderCreateForm(forms.ModelForm):
             'shipping_name': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre completo del destinatario'}),
             'shipping_address': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Dirección de despacho (Comuna, Ciudad)'}),
         }
+
+        from .models import Review
+
+class ReviewForm(forms.ModelForm):
+    RATING_CHOICES = [
+        (5, '⭐⭐⭐⭐⭐ (Excelente)'),
+        (4, '⭐⭐⭐⭐ (Muy Bueno)'),
+        (3, '⭐⭐⭐ (Aceptable)'),
+        (2, '⭐⭐ (Regular)'),
+        (1, '⭐ (Deficiente)'),
+    ]
+    rating = forms.ChoiceField(
+        choices=RATING_CHOICES,
+        widget=forms.Select(attrs={'class': 'select'}),
+        label="Calificación"
+    )
+    comment = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'textarea',
+            'rows': 3,
+            'placeholder': 'Describe cómo llegó el embalaje, el estado del coleccionable o la rapidez del envío...'
+        }),
+        required=False,
+        label="Comentario de Experiencia"
+    )
+
+    class Meta:
+        model = Review
+        fields = ['rating', 'comment']

@@ -9,6 +9,7 @@ class Profile(models.Model):
     phone = models.CharField(max_length=15, blank=True)
     address = models.CharField(max_length=255, blank=True)
     city = models.CharField(max_length=100, blank=True)
+    total_reviews = models.PositiveIntegerField(default=0)
     reputation_score = models.DecimalField(max_digits=3, decimal_places=2, default=Decimal('5.00'))
 
     def __str__(self):
@@ -70,3 +71,31 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Orden #{self.pk} - {self.item.title} ({self.status})"
+
+    from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import Avg
+
+# Agrega este modelo al final de marketplace/models.py
+class Review(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='review')
+    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_written')
+    reviewed_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_received')
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Calificación de 1 a 5 estrellas"
+    )
+    comment = models.TextField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Recalcular automáticamente el promedio de reputación del usuario evaluado
+        profile = self.reviewed_user.profile
+        avg_score = Review.objects.filter(reviewed_user=self.reviewed_user).aggregate(Avg('rating'))['rating__avg']
+        if avg_score is not None:
+            profile.reputation_score = round(Decimal(avg_score), 2)
+            profile.total_reviews = Review.objects.filter(reviewed_user=self.reviewed_user).count()
+            profile.save()
+
+    def __str__(self):
+        return f"Calificación de {self.reviewer.username} a {self.reviewed_user.username} ({self.rating}★)"
