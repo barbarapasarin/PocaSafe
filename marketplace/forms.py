@@ -9,6 +9,8 @@ class RegisterForm(UserCreationForm):
     last_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Apellido'}))
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'input', 'placeholder': 'correo@ejemplo.com'}))
     rut = forms.CharField(max_length=12, required=False, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': '12.345.678-9'}))
+    phone = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': '+56 9 1234 5678'}))
+    address = forms.CharField(max_length=255, required=False, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Dirección o sucursal Starken/Chilexpress'}))
     city = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ciudad / Comuna'}))
 
     class Meta(UserCreationForm.Meta):
@@ -24,6 +26,8 @@ class RegisterForm(UserCreationForm):
             Profile.objects.create(
                 user=user,
                 rut=self.cleaned_data.get('rut', ''),
+                phone=self.cleaned_data.get('phone', ''),
+                address=self.cleaned_data.get('address', ''),
                 city=self.cleaned_data.get('city', '')
             )
         return user
@@ -49,10 +53,13 @@ class CollectibleItemForm(forms.ModelForm):
 class OrderCreateForm(forms.ModelForm):
     class Meta:
         model = Order
-        fields = ['shipping_name', 'shipping_address']
+        fields = ['shipping_name', 'shipping_rut', 'shipping_phone', 'shipping_address', 'shipping_city']
         widgets = {
-            'shipping_name': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre completo del destinatario'}),
-            'shipping_address': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Dirección de despacho (Comuna, Ciudad)'}),
+            'shipping_name': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre completo de quien recibe'}),
+            'shipping_rut': forms.TextInput(attrs={'class': 'input', 'placeholder': 'RUT (ej. 12.345.678-9) exigido por courier'}),
+            'shipping_phone': forms.TextInput(attrs={'class': 'input', 'placeholder': '+56 9 1234 5678'}),
+            'shipping_address': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Domicilio o Sucursal Starken / Correos / Chilexpress'}),
+            'shipping_city': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Comuna / Ciudad (ej. San Bernardo, Santiago)'}),
         }
 
 

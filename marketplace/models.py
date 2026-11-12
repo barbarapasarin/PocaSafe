@@ -49,7 +49,6 @@ class CollectibleItem(models.Model):
 
     def clean(self):
         super().clean()
-        # Normalizar tags: elimina espacios innecesarios y pasa a minúsculas limpias
         if self.tags:
             tag_list = [t.strip().title() for t in self.tags.split(',') if t.strip()]
             self.tags = ", ".join(tag_list)
@@ -71,8 +70,14 @@ class Order(models.Model):
 
     item = models.OneToOneField(CollectibleItem, on_delete=models.PROTECT, related_name='order')
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='purchases')
-    shipping_name = models.CharField(max_length=150)
-    shipping_address = models.CharField(max_length=255)
+    
+    # Datos completos para despacho por Courier (Starken / Correos / Chilexpress)
+    shipping_name = models.CharField(max_length=150, verbose_name="Nombre completo destinatario")
+    shipping_rut = models.CharField(max_length=12, blank=True, verbose_name="RUT destinatario")
+    shipping_phone = models.CharField(max_length=15, blank=True, verbose_name="Teléfono de contacto")
+    shipping_address = models.CharField(max_length=255, verbose_name="Dirección o Sucursal de envío")
+    shipping_city = models.CharField(max_length=100, blank=True, verbose_name="Comuna / Ciudad")
+    
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='paid_escrow')
     
@@ -102,11 +107,11 @@ class Review(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Recalcular automáticamente el promedio de reputación del usuario evaluado
-        profile = self.reviewed_user.profile
+        # Consultar directamente el modelo Profile elimina el warning de Pylance y es más seguro
+        profile, _ = Profile.objects.get_or_create(user=self.reviewed_user)
         avg_score = Review.objects.filter(reviewed_user=self.reviewed_user).aggregate(Avg('rating'))['rating__avg']
         if avg_score is not None:
-            profile.reputation_score = round(Decimal(avg_score), 2)
+            profile.reputation_score = round(Decimal(str(avg_score)), 2)
             profile.total_reviews = Review.objects.filter(reviewed_user=self.reviewed_user).count()
             profile.save()
 

@@ -128,9 +128,22 @@ def item_list(request):
     })
 
 def item_detail(request, pk):
-    """Vista de detalle con formulario de compra segura"""
+    """Vista de detalle con formulario de compra auto-rellenado desde el Perfil"""
     item = get_object_or_404(CollectibleItem, pk=pk)
-    order_form = OrderCreateForm()
+    
+    initial_data = {}
+    if request.user.is_authenticated:
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        full_name = f"{request.user.first_name} {request.user.last_name}".strip()
+        initial_data = {
+            'shipping_name': full_name or request.user.username,
+            'shipping_rut': profile.rut,
+            'shipping_phone': profile.phone,
+            'shipping_address': profile.address,
+            'shipping_city': profile.city,
+        }
+        
+    order_form = OrderCreateForm(initial=initial_data)
     return render(request, 'marketplace/item_detail.html', {
         'item': item,
         'order_form': order_form,
@@ -157,7 +170,7 @@ def item_create(request):
 
 @login_required
 def buy_item(request, pk):
-    """Simulación de compra y retención transaccional (Escrow)"""
+    """Simulación de compra y retención transaccional (Escrow) + Guardado de datos en Perfil"""
     if request.method == 'POST':
         with transaction.atomic():
             item = get_object_or_404(CollectibleItem.objects.select_for_update(), pk=pk)
@@ -180,8 +193,26 @@ def buy_item(request, pk):
                 
                 item.status = 'in_escrow'
                 item.save()
+
+                # Si el comprador no tenía estos datos en su perfil, se los guardamos para la próxima compra
+                profile, _ = Profile.objects.get_or_create(user=request.user)
+                updated_profile = False
+                if not profile.rut and order.shipping_rut:
+                    profile.rut = order.shipping_rut
+                    updated_profile = True
+                if not profile.phone and order.shipping_phone:
+                    profile.phone = order.shipping_phone
+                    updated_profile = True
+                if not profile.address and order.shipping_address:
+                    profile.address = order.shipping_address
+                    updated_profile = True
+                if not profile.city and order.shipping_city:
+                    profile.city = order.shipping_city
+                    updated_profile = True
+                if updated_profile:
+                    profile.save()
                 
-                messages.success(request, f'¡Orden #{order.pk} creada! Fondos en custodia segura.')
+                messages.success(request, f'¡Orden #{order.pk} creada! Fondos retenidos en custodia segura (Escrow).')
                 return redirect('order_detail', pk=order.pk)
 
     return redirect('item_detail', pk=pk)

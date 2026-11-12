@@ -12,6 +12,8 @@
                     <span class="tag is-dark is-medium">Completada / Pago Liberado</span>
                 {% elif order.status == 'shipped' %}
                     <span class="tag is-info is-medium">Enviada con Courier</span>
+                {% elif order.status == 'cancelled' %}
+                    <span class="tag is-light is-medium">Cancelada / Reembolsada</span>
                 {% else %}
                     <span class="tag is-success is-medium">Fondos en Custodia Lógica (Escrow)</span>
                 {% endif %}
@@ -32,12 +34,43 @@
                     <p class="has-text-weight-bold">{{ order.item.seller.username }}</p>
                 </div>
                 <div class="column is-6">
-                    <p class="is-size-7 has-text-grey">Monto Protegido</p>
-                    <p class="title is-4 has-text-success">${{ order.item.price }} CLP</p>
+                    <p class="is-size-7 has-text-grey">Monto Protegido en Escrow</p>
+                    <p class="title is-4 has-text-success mb-2">${{ order.item.price }} CLP</p>
                     
-                    <p class="is-size-7 has-text-grey mt-2">Destino de Despacho</p>
-                    <p class="is-size-7">{{ order.shipping_name }} — {{ order.shipping_address }}</p>
+                    <p class="is-size-7 has-text-grey">Fecha de Operación</p>
+                    <p class="is-size-7">{{ order.created_at|date:"d/m/Y H:i" }}</p>
                 </div>
+            </div>
+
+            <!-- Ficha de Datos de Despacho (Revelación Progresiva) -->
+            <div class="box has-background-light mt-3">
+                <h4 class="title is-6 mb-2">📦 Ficha de Despacho para Courier (Starken / Chilexpress / Correos)</h4>
+                {% if order.status in 'paid_escrow,shipped,delivered,disputed' %}
+                    <div class="columns is-multiline is-mobile is-size-7">
+                        <div class="column is-6">
+                            <strong>Destinatario:</strong><br>{{ order.shipping_name }}
+                        </div>
+                        <div class="column is-6">
+                            <strong>RUT:</strong><br>{{ order.shipping_rut|default:"No especificado" }}
+                        </div>
+                        <div class="column is-6">
+                            <strong>Teléfono:</strong><br>{{ order.shipping_phone|default:"No especificado" }}
+                        </div>
+                        <div class="column is-6">
+                            <strong>Correo (Notificaciones Courier):</strong><br>{{ order.buyer.email|default:"No especificado" }}
+                        </div>
+                        <div class="column is-6">
+                            <strong>Comuna / Ciudad:</strong><br>{{ order.shipping_city|default:"No especificada" }}
+                        </div>
+                        <div class="column is-6">
+                            <strong>Dirección o Sucursal de destino:</strong><br>{{ order.shipping_address }}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="is-size-7 has-text-grey">
+                        🔒 <em>Datos personales protegidos. Solo se habilitan cuando los fondos se encuentran verificados en custodia.</em>
+                    </p>
+                {% endif %}
             </div>
 
             <!-- Regla de Liberación -->
@@ -50,23 +83,23 @@
             <!-- Número de Envío si ya fue despachado -->
             {% if order.tracking_number %}
                 <div class="notification is-info is-light mt-4">
-                    <strong>Número de Envío / Courier:</strong> {{ order.tracking_number }}
+                    <strong>🚚 Número de Seguimiento / Courier:</strong> <span class="tag is-info is-medium ml-2">{{ order.tracking_number }}</span>
                 </div>
             {% endif %}
 
             <!-- ACCIÓN VENDEDOR: Si está pagado y aún no despacha -->
             {% if order.item.seller == user and order.status == 'paid_escrow' %}
                 <div class="box has-background-warning-light mt-4">
-                    <h4 class="title is-6 mb-2">Despacho de la Orden:</h4>
-                    <p class="is-size-7 mb-3">Prepara el envío a nombre de <strong>{{ order.shipping_name }}</strong> a la dirección <strong>{{ order.shipping_address }}</strong> e ingresa el código de seguimiento:</p>
+                    <h4 class="title is-6 mb-2">Confirmar Despacho de la Orden:</h4>
+                    <p class="is-size-7 mb-3">Una vez enviado el paquete con los datos de arriba, ingresa la orden de transporte (OT) o código de seguimiento:</p>
                     <form method="post" action="{% url 'mark_as_shipped' order.pk %}">
                         {% csrf_token %}
                         <div class="field has-addons">
                             <div class="control is-expanded">
-                                <input class="input is-small" type="text" name="tracking_number" placeholder="Ej. Starken 984729182 / Chilexpress 77281" required>
+                                <input class="input is-small" type="text" name="tracking_number" placeholder="Ej. Starken OT 984729182 / Chilexpress 77281" required>
                             </div>
                             <div class="control">
-                                <button type="submit" class="button is-info is-small">Marcar como Enviado</button>
+                                <button type="submit" class="button is-info is-small has-text-weight-bold">Marcar como Enviado</button>
                             </div>
                         </div>
                     </form>
@@ -88,8 +121,8 @@
                     <div class="column is-8">
                         <form method="post" action="{% url 'confirm_delivery' order.pk %}">
                             {% csrf_token %}
-                            <button type="submit" class="button is-success is-fullwidth" onclick="return confirm('¿Confirmas que recibiste el artículo en condiciones óptimas? Se liberará el pago al vendedor.');">
-                                Confirmar Recepción (Liberar Pago)
+                            <button type="submit" class="button is-success is-fullwidth has-text-weight-bold" onclick="return confirm('¿Confirmas que recibiste el artículo en condiciones óptimas? Se liberará el pago al vendedor.');">
+                                ✅ Confirmar Recepción (Liberar Pago)
                             </button>
                         </form>
                     </div>
@@ -101,7 +134,16 @@
                 </div>
             {% elif order.status == 'delivered' %}
                 <div class="notification is-success is-light mt-4 has-text-centered">
-                    <strong>Transacción Finalizada:</strong> Se confirmó la recepción conforme y el pago fue acreditado al vendedor.
+                    <p class="mb-2"><strong>🎉 Transacción Finalizada:</strong> Se confirmó la recepción conforme y el pago fue liberado al vendedor.</p>
+                    {% if order.buyer == user and not order.review %}
+                        <a href="{% url 'leave_review' order.pk %}" class="button is-warning is-small has-text-weight-bold mt-1">
+                            ⭐ Calificar al Vendedor (1 a 5 Estrellas)
+                        </a>
+                    {% elif order.review %}
+                        <p class="is-size-7 has-text-grey mt-1">
+                            Calificaste esta compra con <strong>{{ order.review.rating }}★</strong>: <em>"{{ order.review.comment }}"</em>
+                        </p>
+                    {% endif %}
                 </div>
             {% endif %}
 
