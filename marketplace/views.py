@@ -5,11 +5,17 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Sum, Q
 from django.utils import timezone
 
 from .models import CollectibleItem, Order, Profile, Review
-from .forms import CollectibleItemForm, OrderCreateForm, RegisterForm, ReviewForm
+from .forms import (
+    CollectibleItemForm,
+    OrderCreateForm,
+    RegisterForm,
+    ReviewForm,
+    ProfileUpdateForm,
+)
 
 
 @login_required
@@ -126,6 +132,7 @@ def item_list(request):
         'search_query': query,
         'featured_tags': featured_tags,
     })
+
 
 def item_detail(request, pk):
     """Vista de detalle con formulario de compra auto-rellenado desde el Perfil"""
@@ -251,16 +258,26 @@ def confirm_delivery(request, pk):
             
     return redirect('order_detail', pk=order.pk)
 
-
 @login_required
 def my_sales(request):
-    """Muestra los ítems que el usuario tiene publicados y las ventas por despachar"""
+    """Muestra los ítems publicados, ventas y balance financiero del vendedor"""
     my_items = CollectibleItem.objects.filter(seller=request.user).order_by('-created_at')
     sales_orders = Order.objects.filter(item__seller=request.user).order_by('-created_at')
+    
+    # Cálculo de balances financieros estilo Escrow
+    escrow_balance = sales_orders.filter(
+        status__in=['paid_escrow', 'shipped']
+    ).aggregate(total=Sum('item__price'))['total'] or 0
+
+    released_balance = sales_orders.filter(
+        status='delivered'
+    ).aggregate(total=Sum('item__price'))['total'] or 0
     
     return render(request, 'marketplace/my_sales.html', {
         'my_items': my_items,
         'sales_orders': sales_orders,
+        'escrow_balance': escrow_balance,
+        'released_balance': released_balance,
     })
 
 
@@ -307,14 +324,71 @@ def leave_review(request, pk):
     return render(request, 'marketplace/review_form.html', {'form': form, 'order': order})
 
 
+@login_required
+def item_delete(request, pk):
+    """Permite al vendedor eliminar una publicación propia si aún está disponible"""
+    item = get_object_or_404(CollectibleItem, pk=pk, seller=request.user)
+    if request.method == 'POST':
+        if item.status == 'available':
+            title = item.title
+            item.delete()
+            messages.info(request, f'La publicación "{title}" fue eliminada correctamente.')
+            return redirect('item_list')
+        else:
+            messages.error(request, 'No puedes eliminar un artículo que ya está en custodia o vendido.')
+    return redirect('item_detail', pk=item.pk)
+
+
 def user_profile(request, username):
-    """Perfil público del coleccionista: reputación, comentarios e inventario activo"""
+    """Perfil público del coleccionista + edición de datos propios de despacho"""
     user_target = get_object_or_404(User, username=username)
+    profile, _ = Profile.objects.get_or_create(user=user_target)
     items = CollectibleItem.objects.filter(seller=user_target, status='available').order_by('-created_at')
     reviews = Review.objects.filter(reviewed_user=user_target).order_by('-created_at')
     
+    profile_form = None
+    if request.user.is_authenticated and request.user == user_target:
+        if request.method == 'POST':
+            profile_form = ProfileUpdateForm(request.POST, instance=profile)
+            if profile_form.is_valid():
+                request.user.first_name = profile_form.cleaned_data.get('first_name', '')
+                request.user.last_name = profile_form.cleaned_data.get('last_name', '')
+                request.user.email = profile_form.cleaned_data.get('email', request.user.email)
+                request.user.save()
+                profile_form.save()
+                messages.success(request, '¡Tus datos de perfil y despacho se actualizaron con éxito!')
+                return redirect('user_profile', username=user_target.username)
+        else:
+            profile_form = ProfileUpdateForm(instance=profile, initial={
+                'first_name': request.user.first_name,
+                'last_name': request.user.last_name,
+                'email': request.user.email,
+            })
+
     return render(request, 'marketplace/user_profile.html', {
         'user_target': user_target,
+        'profile': profile,
         'items': items,
         'reviews': reviews,
+        'profile_form': profile_form,
     })
+
+@login_required
+def item_edit(request, pk):
+    """Permite al vendedor editar una publicación propia si aún está disponible"""
+    item = get_object_or_404(CollectibleItem, pk=pk, seller=request.user)
+    
+    if item.status != 'available':
+        messages.error(request, 'No puedes editar un artículo que ya está en proceso de compra o vendido.')
+        return redirect('item_detail', pk=item.pk)
+
+    if request.method == 'POST':
+        form = CollectibleItemForm(request.POST, request.FILES, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '¡Publicación actualizada con éxito!')
+            return redirect('item_detail', pk=item.pk)
+    else:
+        form = CollectibleItemForm(instance=item)
+        
+    return render(request, 'marketplace/item_form.html', {'form': form, 'edit_mode': True})

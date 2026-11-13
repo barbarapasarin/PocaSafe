@@ -58,7 +58,7 @@
                 </a>
             </div>
 
-            <div class="navbar-menu">
+            <div class="navbar-menu is-active">
                 <div class="navbar-start">
                     <a class="navbar-item" href="{% url 'item_list' %}">Catálogo</a>
                     <a class="navbar-item" href="{% url 'item_list' %}?category=photocard">Photocards</a>
@@ -89,7 +89,11 @@
                                     </a>
                                 {% endif %}
 
-                                <span class="tag is-success is-light is-small">Hola, {{ user.username }}</span>
+                                <!-- Link directo a Mi Perfil y Datos de Courier -->
+                                <a class="button is-link is-light is-small has-text-weight-bold" href="{% url 'user_profile' user.username %}">
+                                    👤 Mi Perfil ({{ user.username }})
+                                </a>
+
                                 <form method="post" action="{% url 'logout' %}" style="display: inline;">
                                     {% csrf_token %}
                                     <button type="submit" class="button is-white is-small has-text-grey">Cerrar Sesión</button>
@@ -109,9 +113,19 @@
         </div>
     </nav>
 
-    <!-- Contenido dinámico -->
+    <!-- Contenido dinámico + Mensajes Flash -->
     <main class="section" style="flex: 1;">
         <div class="container">
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="notification {% if message.tags == 'error' %}is-danger{% elif message.tags == 'warning' %}is-warning{% elif message.tags == 'info' %}is-info{% else %}is-success{% endif %} is-light py-3">
+                            <strong>{{ message }}</strong>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             {% block content %}
             {% endblock %}
         </div>

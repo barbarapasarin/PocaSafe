@@ -1,0 +1,125 @@
+{% extends 'marketplace/base.html' %}
+
+{% block content %}
+<div class="columns">
+  <!-- Columna Izquierda: Tarjeta de Reputación y Edición de Perfil (si es el dueño) -->
+  <div class="column is-4">
+    <div class="box has-text-centered">
+      <div class="is-size-1 mb-2">👤</div>
+      <h1 class="title is-4 mb-1">@{{ user_target.username }}</h1>
+      {% if user_target.first_name or user_target.last_name %}
+        <p class="subtitle is-6 has-text-grey mb-2">{{ user_target.first_name }} {{ user_target.last_name }}</p>
+      {% endif %}
+      
+      {% if profile.city %}
+        <p class="is-size-7 has-text-grey mb-3">📍 {{ profile.city }}</p>
+      {% endif %}
+
+      <div class="notification is-warning is-light py-3 px-3 mb-2">
+        <p class="is-size-7 has-text-grey-dark mb-1">Reputación como Coleccionista</p>
+        <p class="title is-3 has-text-warning-dark mb-0">★ {{ profile.reputation_score }}</p>
+        <p class="is-size-7">Basado en <strong>{{ profile.total_reviews }}</strong> evaluaciones verificadas</p>
+      </div>
+    </div>
+
+    <!-- Formulario de Edición de Datos (Solo visible si el usuario logueado es dueño del perfil) -->
+    {% if profile_form %}
+      <div class="box has-background-white-ter">
+        <h3 class="title is-6 mb-3">⚙️ Mis Datos de Despacho (Courier)</h3>
+        <p class="is-size-7 has-text-grey mb-3">
+          Estos datos se auto-completarán cuando compres y permanecen ocultos hasta que una orden entra en custodia.
+        </p>
+        <form method="post">
+          {% csrf_token %}
+          <div class="columns is-mobile mb-0">
+            <div class="column is-6 pb-1">
+              <label class="label is-small">Nombre</label>
+              {{ profile_form.first_name }}
+            </div>
+            <div class="column is-6 pb-1">
+              <label class="label is-small">Apellido</label>
+              {{ profile_form.last_name }}
+            </div>
+          </div>
+          <div class="field mb-2">
+            <label class="label is-small">Correo (Alertas Courier)</label>
+            {{ profile_form.email }}
+          </div>
+          <div class="columns is-mobile mb-0">
+            <div class="column is-6 pb-1">
+              <label class="label is-small">RUT</label>
+              {{ profile_form.rut }}
+            </div>
+            <div class="column is-6 pb-1">
+              <label class="label is-small">Teléfono</label>
+              {{ profile_form.phone }}
+            </div>
+          </div>
+          <div class="field mb-2">
+            <label class="label is-small">Dirección o Sucursal Starken/Chilexpress</label>
+            {{ profile_form.address }}
+          </div>
+          <div class="field mb-3">
+            <label class="label is-small">Comuna / Ciudad</label>
+            {{ profile_form.city }}
+          </div>
+          <button type="submit" class="button is-link is-small is-fullwidth has-text-weight-bold">
+            Guardar Datos de Perfil
+          </button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Columna Derecha: Catálogo Activo y Reseñas Recibidas -->
+  <div class="column is-8">
+    <!-- Publicaciones Disponibles -->
+    <div class="box mb-5">
+      <h2 class="title is-5 mb-4">🃏 Publicaciones Disponibles de @{{ user_target.username }} ({{ items.count }})</h2>
+      {% if items %}
+        <div class="columns is-multiline">
+          {% for item in items %}
+            <div class="column is-6">
+              <div class="card">
+                <div class="card-content py-3 px-4">
+                  <span class="tag is-info is-light is-small mb-1">{{ item.get_category_display }}</span>
+                  <p class="title is-6 mb-1">{{ item.title }}</p>
+                  <p class="subtitle is-6 has-text-success has-text-weight-bold mb-2">${{ item.price }} CLP</p>
+                  <a href="{% url 'item_detail' item.pk %}" class="button is-small is-link is-light is-fullwidth">
+                    Ver Detalle
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="has-text-grey is-size-7">Este usuario no tiene coleccionables disponibles en este momento.</p>
+      {% endif %}
+    </div>
+
+    <!-- Historial de Reseñas Verificadas -->
+    <div class="box">
+      <h2 class="title is-5 mb-4">⭐ Evaluaciones de Compradores ({{ reviews.count }})</h2>
+      {% if reviews %}
+        {% for review in reviews %}
+          <article class="media">
+            <div class="media-content">
+              <div class="content is-size-7">
+                <p class="mb-1">
+                  <strong>@{{ review.reviewer.username }}</strong>
+                  <span class="tag is-warning is-light is-small ml-2">{{ review.rating }} ★</span>
+                  <small class="has-text-grey ml-2">{{ review.created_at|date:"d/m/Y" }} · Orden #{{ review.order.pk }} ({{ review.order.item.title }})</small>
+                </p>
+                <p class="has-text-grey-dark">{{ review.comment|default:"Compra finalizada sin comentario adicional." }}</p>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <p class="has-text-grey is-size-7">Aún no registra reseñas de transacciones finalizadas.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

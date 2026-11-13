@@ -117,8 +117,27 @@
               </div>
             </form>
           {% else %}
-            <div class="notification is-warning is-light is-size-7">Esta publicación te pertenece.</div>
+            <div class="notification is-warning is-light is-size-7 mb-2">
+              Esta publicación te pertenece. Mientras esté disponible, puedes retirarla del catálogo:
+            </div>
+            <form method="post" action="{% url 'item_delete' item.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="button is-danger is-outlined is-small is-fullwidth" onclick="return confirm('¿Segura que deseas eliminar esta publicación?');">
+                Eliminar Publicación
+              </button>
+            </form>
           {% endif %}
+          {% if item.status == 'available' %}
+  <a href="{% url 'item_edit' item.pk %}" class="button is-info is-outlined is-small is-fullwidth mb-2">
+    ✏️ Editar Publicación
+  </a>
+  <form method="post" action="{% url 'item_delete' item.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="button is-danger is-outlined is-small is-fullwidth" onclick="return confirm('¿Segura que deseas eliminar esta publicación?');">
+      🗑️ Eliminar Publicación
+    </button>
+  </form>
+{% endif %}
         {% else %}
           <a href="{% url 'login' %}?next={{ request.path }}" class="button is-success is-fullwidth">
             Inicia sesión para comprar con Custodia

@@ -17,6 +17,28 @@
             </div>
         </div>
 
+        <!-- PANEL FINANCIERO DE VENDEDOR -->
+        <div class="columns mb-5">
+            <div class="column is-6">
+                <div class="box has-background-warning-light py-4 px-4">
+                    <p class="is-size-7 has-text-grey-dark uppercase has-text-weight-bold mb-1">🟡 Saldo Retenido en Custodia (Por Despachar/Enviar)</p>
+                    <p class="title is-4 has-text-warning-dark mb-0">
+                        ${{ escrow_balance|default:"0" }} CLP
+                    </p>
+                    <p class="is-size-7 has-text-grey mt-1">Fondos asegurados en la plataforma listos para tu envío por Starken/Chilexpress.</p>
+                </div>
+            </div>
+            <div class="column is-6">
+                <div class="box has-background-success-light py-4 px-4">
+                    <p class="is-size-7 has-text-success-dark uppercase has-text-weight-bold mb-1">🟢 Ganancias Liberadas (Cobrado)</p>
+                    <p class="title is-4 has-text-success-dark mb-0">
+                        ${{ released_balance|default:"0" }} CLP
+                    </p>
+                    <p class="is-size-7 has-text-grey mt-1">Transacciones finalizadas con recepción conforme del comprador.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Sección 1: Pedidos por Despachar -->
         <div class="box mb-5">
             <h2 class="title is-4 mb-3">Ventas y Envíos en Curso</h2>
@@ -99,7 +121,7 @@
                                 <p class="has-text-weight-bold is-size-6">{{ item.title }}</p>
                                 <p class="has-text-success has-text-weight-bold">${{ item.price }} CLP</p>
                                 <a href="{% url 'item_detail' item.pk %}" class="button is-small is-fullwidth is-light mt-2">
-                                    Ver Ficha
+                                    Ver Ficha / Gestionar
                                 </a>
                             </div>
                         </div>

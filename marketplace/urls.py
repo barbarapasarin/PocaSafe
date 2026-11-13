@@ -6,6 +6,7 @@ urlpatterns = [
     path('', views.item_list, name='item_list'),
     path('item/new/', views.item_create, name='item_create'),
     path('item/<int:pk>/', views.item_detail, name='item_detail'),
+    path('item/<int:pk>/delete/', views.item_delete, name='item_delete'),
     path('item/<int:pk>/buy/', views.buy_item, name='buy_item'),
     path('order/<int:pk>/', views.order_detail, name='order_detail'),
     path('order/<int:pk>/confirm/', views.confirm_delivery, name='confirm_delivery'),
@@ -13,16 +14,16 @@ urlpatterns = [
     path('order/<int:pk>/dispute/', views.open_dispute, name='open_dispute'),
     path('my-orders/', views.my_orders, name='my_orders'),
     path('my-sales/', views.my_sales, name='my_sales'),
+    path('item/<int:pk>/edit/', views.item_edit, name='item_edit'),
     
     # Mediación y Disputas (Admin / Soporte)
     path('disputes/', views.dispute_dashboard, name='dispute_dashboard'),
     path('disputes/<int:pk>/resolve/', views.resolve_dispute, name='resolve_dispute'),
     
-    # Autenticación
+    # Autenticación y Perfiles
     path('register/', views.register, name='register'),
     path('login/', auth_views.LoginView.as_view(template_name='marketplace/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('order/<int:pk>/review/', views.leave_review, name='leave_review'),
     path('profile/<str:username>/', views.user_profile, name='user_profile'),
-
 ]

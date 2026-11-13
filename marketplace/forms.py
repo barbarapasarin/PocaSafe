@@ -89,3 +89,30 @@ class ReviewForm(forms.ModelForm):
     class Meta:
         model = Review
         fields = ['rating', 'comment']
+
+
+class ProfileUpdateForm(forms.ModelForm):
+    first_name = forms.CharField(
+        max_length=30, 
+        required=False, 
+        widget=forms.TextInput(attrs={'class': 'input is-small', 'placeholder': 'Nombre'})
+    )
+    last_name = forms.CharField(
+        max_length=30, 
+        required=False, 
+        widget=forms.TextInput(attrs={'class': 'input is-small', 'placeholder': 'Apellido'})
+    )
+    email = forms.EmailField(
+        required=True, 
+        widget=forms.EmailInput(attrs={'class': 'input is-small', 'placeholder': 'correo@ejemplo.com'})
+    )
+
+    class Meta:
+        model = Profile
+        fields = ['rut', 'phone', 'address', 'city']
+        widgets = {
+            'rut': forms.TextInput(attrs={'class': 'input is-small', 'placeholder': '12.345.678-9'}),
+            'phone': forms.TextInput(attrs={'class': 'input is-small', 'placeholder': '+56 9 1234 5678'}),
+            'address': forms.TextInput(attrs={'class': 'input is-small', 'placeholder': 'Dirección o Sucursal Starken/Chilexpress'}),
+            'city': forms.TextInput(attrs={'class': 'input is-small', 'placeholder': 'Comuna / Ciudad'}),
+        }

@@ -111,8 +111,13 @@
     </div>
     {% empty %}
     <div class="column is-12">
-        <div class="notification is-light has-text-centered">
-            No se encontraron publicaciones con esos criterios.
+        <div class="box has-text-centered py-6">
+            <p class="is-size-3 mb-2">🔍</p>
+            <h3 class="title is-5 has-text-grey">No encontramos coleccionables con esos criterios</h3>
+            <p class="is-size-7 has-text-grey mb-4">Intenta buscar con otro nombre, categoría o revisa los filtros rápidos de etiquetas.</p>
+            <a href="{% url 'item_list' %}" class="button is-success is-small has-text-weight-bold">
+                Ver todo el catálogo
+            </a>
         </div>
     </div>
     {% endfor %}
