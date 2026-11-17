@@ -107,7 +107,6 @@ class Review(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Consultar directamente el modelo Profile elimina el warning de Pylance y es más seguro
         profile, _ = Profile.objects.get_or_create(user=self.reviewed_user)
         avg_score = Review.objects.filter(reviewed_user=self.reviewed_user).aggregate(Avg('rating'))['rating__avg']
         if avg_score is not None:
@@ -117,3 +116,21 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Calificación de {self.reviewer.username} a {self.reviewed_user.username} ({self.rating}★)"
+
+
+# 5. Registro Inmutable de Auditoría (Escrow)
+class EscrowAuditLog(models.Model):
+    """Registro inmutable de auditoría para cada etapa de la custodia (Escrow)"""
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    action = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Log de Auditoría Escrow'
+        verbose_name_plural = 'Logs de Auditoría Escrow'
+
+    def __str__(self):
+        order_num = self.order.pk if self.order else 'N/A'
+        return f"[{self.timestamp.strftime('%Y-%m-%d %H:%M')}] Orden #{order_num}: {self.action}"

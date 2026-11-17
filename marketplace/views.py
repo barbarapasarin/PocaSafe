@@ -7,8 +7,10 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Sum, Q
 from django.utils import timezone
+from django.conf import settings 
+import mercadopago
 
-from .models import CollectibleItem, Order, Profile, Review
+from .models import CollectibleItem, Order, Profile, Review, EscrowAuditLog
 from .forms import (
     CollectibleItemForm,
     OrderCreateForm,
@@ -20,10 +22,8 @@ from .forms import (
 
 @login_required
 def open_dispute(request, pk):
-    """Permite al comprador abrir un reclamo antes de liberar los fondos"""
     order = get_object_or_404(Order, pk=pk, buyer=request.user)
     
-    # Solo se puede disputar si la orden está pagada o enviada
     if order.status not in ['paid_escrow', 'shipped']:
         messages.error(request, 'No es posible abrir disputa en el estado actual de la orden.')
         return redirect('order_detail', pk=order.pk)
@@ -36,6 +36,13 @@ def open_dispute(request, pk):
                 order.dispute_reason = reason
                 order.dispute_created_at = timezone.now()
                 order.save()
+                
+                EscrowAuditLog.objects.create(
+                    order=order, 
+                    user=request.user, 
+                    action=f"⚠️ Disputa abierta por el comprador. Motivo: {reason}."
+                )
+
                 messages.warning(request, f'Se ha abierto una disputa formal para la Orden #{order.pk}. Los fondos quedan congelados hasta mediación.')
                 return redirect('order_detail', pk=order.pk)
         else:
@@ -67,12 +74,28 @@ def resolve_dispute(request, pk):
                 order.item.status = 'sold'
                 order.save()
                 order.item.save()
+                
+                # 📝 Registro de Auditoría Inmutable
+                EscrowAuditLog.objects.create(
+                    order=order, 
+                    user=request.user, 
+                    action=f"⚖️ Mediación resuelta por admin: Fondos liberados al vendedor. Notas: {admin_notes}"
+                )
+                
                 messages.success(request, f'Disputa #{order.pk} resuelta: Fondos liberados al vendedor.')
             elif resolution == 'refund_buyer':
                 order.status = 'cancelled'
                 order.item.status = 'available'
                 order.save()
                 order.item.save()
+                
+                # 📝 Registro de Auditoría Inmutable
+                EscrowAuditLog.objects.create(
+                    order=order, 
+                    user=request.user, 
+                    action=f"⚖️ Mediación resuelta por admin: Reembolso al comprador. Notas: {admin_notes}"
+                )
+                
                 messages.info(request, f'Disputa #{order.pk} resuelta: Fondos devueltos al comprador.')
                 
             return redirect('dispute_dashboard')
@@ -106,15 +129,12 @@ def item_list(request):
 
     items = CollectibleItem.objects.filter(status='available').order_by('-created_at')
 
-    # Filtro de categoría fija (photocard / tcg / other)
     if category_filter:
         items = items.filter(category=category_filter)
 
-    # Filtro directo por tag (ej. al pinchar chip de BTS o ATEEZ)
     if tag_filter:
         items = items.filter(tags__icontains=tag_filter)
 
-    # Búsqueda libre en título, descripción y etiquetas
     if query:
         items = items.filter(
             Q(title__icontains=query) | 
@@ -122,7 +142,6 @@ def item_list(request):
             Q(tags__icontains=query)
         )
 
-    # Tags destacados para los chips de prueba rápida
     featured_tags = ['BTS', 'ATEEZ', 'RM', 'San', 'Seonghwa', 'Album PC', 'Pikachu']
 
     return render(request, 'marketplace/item_list.html', {
@@ -177,7 +196,7 @@ def item_create(request):
 
 @login_required
 def buy_item(request, pk):
-    """Simulación de compra y retención transaccional (Escrow) + Guardado de datos en Perfil"""
+    """Crea la orden en estado pendiente y procesa pago vía Mercado Pago SDK (Sandbox)"""
     if request.method == 'POST':
         with transaction.atomic():
             item = get_object_or_404(CollectibleItem.objects.select_for_update(), pk=pk)
@@ -195,13 +214,10 @@ def buy_item(request, pk):
                 order = form.save(commit=False)
                 order.item = item
                 order.buyer = request.user
-                order.status = 'paid_escrow'
+                order.status = 'pending'
                 order.save()
                 
-                item.status = 'in_escrow'
-                item.save()
-
-                # Si el comprador no tenía estos datos en su perfil, se los guardamos para la próxima compra
+                # Guardar datos en el perfil si faltaban
                 profile, _ = Profile.objects.get_or_create(user=request.user)
                 updated_profile = False
                 if not profile.rut and order.shipping_rut:
@@ -218,9 +234,48 @@ def buy_item(request, pk):
                     updated_profile = True
                 if updated_profile:
                     profile.save()
-                
-                messages.success(request, f'¡Orden #{order.pk} creada! Fondos retenidos en custodia segura (Escrow).')
-                return redirect('order_detail', pk=order.pk)
+
+                # 📝 Registro de Auditoría Inmutable
+                EscrowAuditLog.objects.create(
+                    order=order, 
+                    user=request.user, 
+                    action=f"🛒 Orden creada en estado pendiente por ${item.price} CLP."
+                )
+
+                # --- INTEGRACIÓN CON MERCADO PAGO SDK ---
+                try:
+                    if settings.MERCADOPAGO_ACCESS_TOKEN:
+                        mp = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+                        preference_data = {
+                            "items": [
+                                {
+                                    "title": item.title,
+                                    "quantity": 1,
+                                    "unit_price": int(item.price),
+                                    "currency_id": "CLP",
+                                }
+                            ],
+                            "payer": {
+                                "name": order.shipping_name,
+                                "email": request.user.email,
+                            },
+                            "back_urls": {
+                                "success": f"{settings.SITE_URL}/order/{order.pk}/payment-success/",
+                                "failure": f"{settings.SITE_URL}/order/{order.pk}/payment-failure/",
+                                "pending": f"{settings.SITE_URL}/order/{order.pk}/payment-pending/",
+                            },
+                            "auto_return": "approved",
+                            "external_reference": str(order.pk),
+                        }
+                        result = mp.preference().create(preference_data)
+                        response = result.get("response", {})
+                        init_point = response.get("init_point")
+                        if init_point:
+                            return redirect(init_point)
+                except Exception as e:
+                    print(f"⚠️ Aviso MP SDK: {e} -> Redirigiendo a pasarela simulada local.")
+
+                return redirect('order_sandbox_pay', pk=order.pk)
 
     return redirect('item_detail', pk=pk)
 
@@ -241,7 +296,6 @@ def my_orders(request):
 
 @login_required
 def confirm_delivery(request, pk):
-    """El comprador confirma recepción conforme y se liberan los fondos"""
     order = get_object_or_404(Order, pk=pk, buyer=request.user)
     
     if request.method == 'POST':
@@ -253,10 +307,17 @@ def confirm_delivery(request, pk):
             item.status = 'sold'
             item.save()
             
+            EscrowAuditLog.objects.create(
+                order=order, 
+                user=request.user, 
+                action=f"✅ Comprador confirmó recepción conforme. Fondos liberados al vendedor."
+            )
+
             messages.success(request, f'¡Recepción confirmada para la Orden #{order.pk}! Fondos liberados al vendedor.')
             return redirect('order_detail', pk=order.pk)
             
     return redirect('order_detail', pk=order.pk)
+
 
 @login_required
 def my_sales(request):
@@ -264,7 +325,6 @@ def my_sales(request):
     my_items = CollectibleItem.objects.filter(seller=request.user).order_by('-created_at')
     sales_orders = Order.objects.filter(item__seller=request.user).order_by('-created_at')
     
-    # Cálculo de balances financieros estilo Escrow
     escrow_balance = sales_orders.filter(
         status__in=['paid_escrow', 'shipped']
     ).aggregate(total=Sum('item__price'))['total'] or 0
@@ -283,7 +343,6 @@ def my_sales(request):
 
 @login_required
 def mark_as_shipped(request, pk):
-    """El vendedor ingresa el tracking y marca la orden como enviada"""
     order = get_object_or_404(Order, pk=pk, item__seller=request.user)
     
     if request.method == 'POST':
@@ -292,6 +351,13 @@ def mark_as_shipped(request, pk):
             order.tracking_number = tracking
             order.status = 'shipped'
             order.save()
+            
+            EscrowAuditLog.objects.create(
+                order=order, 
+                user=request.user, 
+                action=f"📦 Vendedor marcó orden como enviada con tracking: {tracking}."
+            )
+
             messages.success(request, f'Orden #{order.pk} marcada como enviada con tracking: {tracking}')
         else:
             messages.error(request, 'Debes ingresar un número de seguimiento válido.')
@@ -373,6 +439,7 @@ def user_profile(request, username):
         'profile_form': profile_form,
     })
 
+
 @login_required
 def item_edit(request, pk):
     """Permite al vendedor editar una publicación propia si aún está disponible"""
@@ -392,3 +459,55 @@ def item_edit(request, pk):
         form = CollectibleItemForm(instance=item)
         
     return render(request, 'marketplace/item_form.html', {'form': form, 'edit_mode': True})
+
+
+@login_required
+def order_sandbox_pay(request, pk):
+    """Pantalla interactiva de simulación de pago (Pasarela Sandbox Local)"""
+    order = get_object_or_404(Order, pk=pk, buyer=request.user)
+    if order.status != 'pending':
+        return redirect('order_detail', pk=order.pk)
+    return render(request, 'marketplace/sandbox_pay.html', {'order': order})
+
+
+@login_required
+def payment_success(request, pk):
+    order = get_object_or_404(Order, pk=pk, buyer=request.user)
+    if order.status == 'pending':
+        with transaction.atomic():
+            order.status = 'paid_escrow'
+            order.save()
+            
+            item = order.item
+            item.status = 'in_escrow'
+            item.save()
+
+            EscrowAuditLog.objects.create(
+                order=order, 
+                user=request.user, 
+                action=f"💰 Pago aprobado y fondos retenidos en custodia por ${order.item.price} CLP."
+            )
+
+            messages.success(request, f'¡Pago aprobado! Fondos retenidos exitosamente en Custodia Segura (Escrow) para la Orden #{order.pk}.')
+    return redirect('order_detail', pk=order.pk)
+
+
+@login_required
+def payment_failure(request, pk):
+    """Maneja el rechazo o cancelación del pago"""
+    order = get_object_or_404(Order, pk=pk, buyer=request.user)
+    if order.status == 'pending':
+        order.status = 'cancelled'
+        order.item.status = 'available'
+        order.save()
+        order.item.save()
+
+        # 📝 Registro de Auditoría Inmutable
+        EscrowAuditLog.objects.create(
+            order=order, 
+            user=request.user, 
+            action=f"❌ Pago cancelado o rechazado. Orden anulada y coleccionable liberado."
+        )
+
+        messages.error(request, 'El pago fue cancelado o rechazado por la pasarela. La orden ha sido cancelada.')
+    return redirect('item_list')

@@ -7,14 +7,16 @@ urlpatterns = [
     path('item/new/', views.item_create, name='item_create'),
     path('item/<int:pk>/', views.item_detail, name='item_detail'),
     path('item/<int:pk>/delete/', views.item_delete, name='item_delete'),
+    path('item/<int:pk>/edit/', views.item_edit, name='item_edit'),
     path('item/<int:pk>/buy/', views.buy_item, name='buy_item'),
+    
     path('order/<int:pk>/', views.order_detail, name='order_detail'),
     path('order/<int:pk>/confirm/', views.confirm_delivery, name='confirm_delivery'),
     path('order/<int:pk>/ship/', views.mark_as_shipped, name='mark_as_shipped'),
     path('order/<int:pk>/dispute/', views.open_dispute, name='open_dispute'),
+    
     path('my-orders/', views.my_orders, name='my_orders'),
     path('my-sales/', views.my_sales, name='my_sales'),
-    path('item/<int:pk>/edit/', views.item_edit, name='item_edit'),
     
     # Mediación y Disputas (Admin / Soporte)
     path('disputes/', views.dispute_dashboard, name='dispute_dashboard'),
@@ -26,4 +28,9 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('order/<int:pk>/review/', views.leave_review, name='leave_review'),
     path('profile/<str:username>/', views.user_profile, name='user_profile'),
+
+    # Pasarela de Pago / Sandbox
+    path('order/<int:pk>/sandbox-pay/', views.order_sandbox_pay, name='order_sandbox_pay'),
+    path('order/<int:pk>/payment-success/', views.payment_success, name='payment_success'),
+    path('order/<int:pk>/payment-failure/', views.payment_failure, name='payment_failure'),
 ]

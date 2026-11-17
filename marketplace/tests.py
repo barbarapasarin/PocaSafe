@@ -95,9 +95,9 @@ class EscrowTransactionTestCase(TestCase):
         self.assertFalse(Order.objects.filter(item=self.item).exists())
         self.client.logout()
 
-        # 2. La compradora legítima realiza la compra con datos de courier -> Pasa a custodia y actualiza su perfil
+        # 2. La compradora legítima realiza la compra -> Se crea la orden pendiente y va a la pasarela
         self.client.login(username='compradora_test', password='password123')
-        self.client.post(buy_url, {
+        response = self.client.post(buy_url, {
             'shipping_name': 'Bárbara Test',
             'shipping_rut': '21.111.222-3',
             'shipping_phone': '+56987654321',
@@ -105,9 +105,20 @@ class EscrowTransactionTestCase(TestCase):
             'shipping_city': 'San Bernardo',
         })
         
+        # Verificamos que se creó la orden y redirigió a la pasarela de pago
+        order = Order.objects.get(item=self.item)
+        self.assertEqual(order.status, 'pending')
+
+        # 3. Simulamos que el pago es aprobado exitosamente en la pasarela (Sandbox/Success)
+        success_url = reverse('payment_success', args=[order.pk])
+        self.client.get(success_url)
+        
         self.item.refresh_from_db()
         self.buyer_profile.refresh_from_db()
+        order.refresh_from_db()
         
+        # Ahora sí, tras el pago aprobado, el ítem queda en custodia y el perfil se actualiza
+        self.assertEqual(order.status, 'paid_escrow')
         self.assertEqual(self.item.status, 'in_escrow')
         self.assertEqual(self.buyer_profile.rut, '21.111.222-3')
         self.assertEqual(self.buyer_profile.phone, '+56987654321')
