@@ -128,3 +128,9 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'item_list'
 LOGOUT_REDIRECT_URL = 'item_list'
+
+# MercadoPago y URLs de Retorno
+MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN', '')
+
+# URL Base del sitio para los webhooks y redirecciones de pago (Usa tu dominio de Render en producción)
+SITE_URL = os.environ.get('SITE_URL', 'https://pocasafe.onrender.com')
