@@ -96,17 +96,22 @@
                   </div>
                 </div>
 
+                <div class="field mb-2">
+                  <label class="label is-small">Dirección o Sucursal de retiro</label>
+                  <div class="control">{{ order_form.shipping_address }}</div>
+                </div>
+
                 <div class="columns is-mobile mb-2">
-                  <div class="column is-7">
-                    <div class="field">
-                      <label class="label is-small">Dirección o Sucursal de retiro</label>
-                      <div class="control">{{ order_form.shipping_address }}</div>
-                    </div>
-                  </div>
-                  <div class="column is-5">
+                  <div class="column is-6">
                     <div class="field">
                       <label class="label is-small">Comuna / Ciudad</label>
                       <div class="control">{{ order_form.shipping_city }}</div>
+                    </div>
+                  </div>
+                  <div class="column is-6">
+                    <div class="field">
+                      <label class="label is-small">Región</label>
+                      <div class="control select is-fullwidth">{{ order_form.shipping_region }}</div>
                     </div>
                   </div>
                 </div>

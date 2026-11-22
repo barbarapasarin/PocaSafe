@@ -11,8 +11,10 @@
         <p class="subtitle is-6 has-text-grey mb-2">{{ user_target.first_name }} {{ user_target.last_name }}</p>
       {% endif %}
       
-      {% if profile.city %}
-        <p class="is-size-7 has-text-grey mb-3">📍 {{ profile.city }}</p>
+      {% if profile.city or profile.region %}
+        <p class="is-size-7 has-text-grey mb-3">
+          📍 {{ profile.city }}{% if profile.city and profile.region %}, {% endif %}{{ profile.region }}
+        </p>
       {% endif %}
 
       <div class="notification is-warning is-light py-3 px-3 mb-2">
@@ -59,11 +61,17 @@
             <label class="label is-small">Dirección o Sucursal Starken/Chilexpress</label>
             {{ profile_form.address }}
           </div>
-          <div class="field mb-3">
-            <label class="label is-small">Comuna / Ciudad</label>
-            {{ profile_form.city }}
+          <div class="columns is-mobile mb-0">
+            <div class="column is-6 pb-1">
+              <label class="label is-small">Comuna / Ciudad</label>
+              {{ profile_form.city }}
+            </div>
+            <div class="column is-6 pb-1">
+              <label class="label is-small">Región</label>
+              <div class="select is-small is-fullwidth">{{ profile_form.region }}</div>
+            </div>
           </div>
-          <button type="submit" class="button is-link is-small is-fullwidth has-text-weight-bold">
+          <button type="submit" class="button is-link is-small is-fullwidth has-text-weight-bold mt-2">
             Guardar Datos de Perfil
           </button>
         </form>

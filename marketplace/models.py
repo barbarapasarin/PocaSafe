@@ -4,6 +4,25 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Avg
 
+CHILE_REGIONS = [
+    ('Arica y Parinacota', 'Arica y Parinacota'),
+    ('Tarapacá', 'Tarapacá'),
+    ('Antofagasta', 'Antofagasta'),
+    ('Atacama', 'Atacama'),
+    ('Coquimbo', 'Coquimbo'),
+    ('Valparaíso', 'Valparaíso'),
+    ('Región Metropolitana de Santiago', 'Región Metropolitana de Santiago'),
+    ("Libertador General Bernardo O'Higgins", "Libertador General Bernardo O'Higgins"),
+    ('Maule', 'Maule'),
+    ('Ñuble', 'Ñuble'),
+    ('Biobío', 'Biobío'),
+    ('La Araucanía', 'La Araucanía'),
+    ('Los Ríos', 'Los Ríos'),
+    ('Los Lagos', 'Los Lagos'),
+    ('Aysén del General Carlos Ibáñez del Campo', 'Aysén del General Carlos Ibáñez del Campo'),
+    ('Magallanes y de la Antártica Chilena', 'Magallanes y de la Antártica Chilena'),
+]
+
 
 # 1. Perfil / Datos de usuario
 class Profile(models.Model):
@@ -12,6 +31,7 @@ class Profile(models.Model):
     phone = models.CharField(max_length=15, blank=True)
     address = models.CharField(max_length=255, blank=True)
     city = models.CharField(max_length=100, blank=True)
+    region = models.CharField(max_length=100, choices=CHILE_REGIONS, blank=True)
     total_reviews = models.PositiveIntegerField(default=0)
     reputation_score = models.DecimalField(max_digits=3, decimal_places=2, default=Decimal('5.00'))
 
@@ -26,7 +46,7 @@ class CollectibleItem(models.Model):
         ('in_escrow', 'En Custodia / En Proceso'),
         ('sold', 'Vendido / Entregado'),
     ]
-    
+
     CATEGORY_CHOICES = [
         ('photocard', 'Photocard K-Pop'),
         ('tcg', 'Carta TCG'),
@@ -38,8 +58,8 @@ class CollectibleItem(models.Model):
     description = models.TextField(blank=True)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='photocard')
     tags = models.CharField(
-        max_length=200, 
-        blank=True, 
+        max_length=200,
+        blank=True,
         help_text="Etiquetas separadas por comas (ej. BTS, RM, Album PC)"
     )
     price = models.PositiveIntegerField(help_text="Precio en CLP")
@@ -70,22 +90,23 @@ class Order(models.Model):
 
     item = models.OneToOneField(CollectibleItem, on_delete=models.PROTECT, related_name='order')
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='purchases')
-    
+
     # Datos completos para despacho por Courier (Starken / Correos / Chilexpress)
     shipping_name = models.CharField(max_length=150, verbose_name="Nombre completo destinatario")
     shipping_rut = models.CharField(max_length=12, blank=True, verbose_name="RUT destinatario")
     shipping_phone = models.CharField(max_length=15, blank=True, verbose_name="Teléfono de contacto")
     shipping_address = models.CharField(max_length=255, verbose_name="Dirección o Sucursal de envío")
     shipping_city = models.CharField(max_length=100, blank=True, verbose_name="Comuna / Ciudad")
-    
+    shipping_region = models.CharField(max_length=100, choices=CHILE_REGIONS, blank=True, verbose_name="Región")
+
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='paid_escrow')
-    
+
     # Campos para mediación y disputas
     dispute_reason = models.TextField(blank=True, null=True)
     dispute_created_at = models.DateTimeField(blank=True, null=True)
     admin_notes = models.TextField(blank=True, null=True, help_text="Resolución del mediador/administrador")
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

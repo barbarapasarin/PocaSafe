@@ -1,21 +1,66 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Profile, CollectibleItem, Order, Review
+from .models import Profile, CollectibleItem, Order, Review, CHILE_REGIONS
+
+REGION_SELECT_CHOICES = [('', 'Selecciona una región')] + list(CHILE_REGIONS)
 
 
 class RegisterForm(UserCreationForm):
-    first_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre'}))
-    last_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Apellido'}))
-    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'input', 'placeholder': 'correo@ejemplo.com'}))
-    rut = forms.CharField(max_length=12, required=False, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': '12.345.678-9'}))
-    phone = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': '+56 9 1234 5678'}))
-    address = forms.CharField(max_length=255, required=False, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Dirección o sucursal Starken/Chilexpress'}))
-    city = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ciudad / Comuna'}))
+    first_name = forms.CharField(
+        max_length=30,
+        required=True,
+        label='Nombre',
+        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre'})
+    )
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        label='Apellido',
+        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Apellido'})
+    )
+    email = forms.EmailField(
+        required=True,
+        label='Correo electrónico',
+        widget=forms.EmailInput(attrs={'class': 'input', 'placeholder': 'correo@ejemplo.com'})
+    )
+    rut = forms.CharField(
+        max_length=12,
+        required=False,
+        label='RUT',
+        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': '12.345.678-9'})
+    )
+    phone = forms.CharField(
+        max_length=15,
+        required=False,
+        label='Teléfono de contacto',
+        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': '+56 9 1234 5678'})
+    )
+    address = forms.CharField(
+        max_length=255,
+        required=False,
+        label='Dirección o Sucursal Courier',
+        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Dirección o sucursal Starken/Chilexpress'})
+    )
+    city = forms.CharField(
+        max_length=100,
+        required=False,
+        label='Comuna / Ciudad',
+        widget=forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ej. San Bernardo'})
+    )
+    region = forms.ChoiceField(
+        choices=REGION_SELECT_CHOICES,
+        required=False,
+        label='Región',
+        widget=forms.Select(attrs={'class': 'input'})
+    )
 
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ('username', 'first_name', 'last_name', 'email')
+        labels = {
+            'username': 'Nombre de usuario',
+        }
         widgets = {
             'username': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre de usuario'}),
         }
@@ -28,7 +73,8 @@ class RegisterForm(UserCreationForm):
                 rut=self.cleaned_data.get('rut', ''),
                 phone=self.cleaned_data.get('phone', ''),
                 address=self.cleaned_data.get('address', ''),
-                city=self.cleaned_data.get('city', '')
+                city=self.cleaned_data.get('city', ''),
+                region=self.cleaned_data.get('region', ''),
             )
         return user
 
@@ -41,7 +87,7 @@ class CollectibleItemForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ej. Photocard RM Indigo'}),
             'category': forms.Select(attrs={'class': 'select'}),
             'tags': forms.TextInput(attrs={
-                'class': 'input', 
+                'class': 'input',
                 'placeholder': 'Ej: BTS, RM, Album PC, Indigo (separados por coma)'
             }),
             'price': forms.NumberInput(attrs={'class': 'input', 'placeholder': 'Precio en CLP'}),
@@ -53,13 +99,14 @@ class CollectibleItemForm(forms.ModelForm):
 class OrderCreateForm(forms.ModelForm):
     class Meta:
         model = Order
-        fields = ['shipping_name', 'shipping_rut', 'shipping_phone', 'shipping_address', 'shipping_city']
+        fields = ['shipping_name', 'shipping_rut', 'shipping_phone', 'shipping_address', 'shipping_city', 'shipping_region']
         widgets = {
             'shipping_name': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nombre completo de quien recibe'}),
             'shipping_rut': forms.TextInput(attrs={'class': 'input', 'placeholder': 'RUT (ej. 12.345.678-9) exigido por courier'}),
             'shipping_phone': forms.TextInput(attrs={'class': 'input', 'placeholder': '+56 9 1234 5678'}),
             'shipping_address': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Domicilio o Sucursal Starken / Correos / Chilexpress'}),
-            'shipping_city': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Comuna / Ciudad (ej. San Bernardo, Santiago)'}),
+            'shipping_city': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Comuna / Ciudad (ej. San Bernardo)'}),
+            'shipping_region': forms.Select(attrs={'class': 'input'}),
         }
 
 
@@ -93,26 +140,27 @@ class ReviewForm(forms.ModelForm):
 
 class ProfileUpdateForm(forms.ModelForm):
     first_name = forms.CharField(
-        max_length=30, 
-        required=False, 
+        max_length=30,
+        required=False,
         widget=forms.TextInput(attrs={'class': 'input is-small', 'placeholder': 'Nombre'})
     )
     last_name = forms.CharField(
-        max_length=30, 
-        required=False, 
+        max_length=30,
+        required=False,
         widget=forms.TextInput(attrs={'class': 'input is-small', 'placeholder': 'Apellido'})
     )
     email = forms.EmailField(
-        required=True, 
+        required=True,
         widget=forms.EmailInput(attrs={'class': 'input is-small', 'placeholder': 'correo@ejemplo.com'})
     )
 
     class Meta:
         model = Profile
-        fields = ['rut', 'phone', 'address', 'city']
+        fields = ['rut', 'phone', 'address', 'city', 'region']
         widgets = {
             'rut': forms.TextInput(attrs={'class': 'input is-small', 'placeholder': '12.345.678-9'}),
             'phone': forms.TextInput(attrs={'class': 'input is-small', 'placeholder': '+56 9 1234 5678'}),
             'address': forms.TextInput(attrs={'class': 'input is-small', 'placeholder': 'Dirección o Sucursal Starken/Chilexpress'}),
             'city': forms.TextInput(attrs={'class': 'input is-small', 'placeholder': 'Comuna / Ciudad'}),
+            'region': forms.Select(attrs={'class': 'input is-small'}),
         }

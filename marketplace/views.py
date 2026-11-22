@@ -170,6 +170,7 @@ def item_detail(request, pk):
             'shipping_phone': profile.phone,
             'shipping_address': profile.address,
             'shipping_city': profile.city,
+            'shipping_region': profile.region,
         }
 
     order_form = OrderCreateForm(initial=initial_data)
@@ -234,6 +235,9 @@ def buy_item(request, pk):
                     updated_profile = True
                 if not profile.city and order.shipping_city:
                     profile.city = order.shipping_city
+                    updated_profile = True
+                if not profile.region and order.shipping_region:
+                    profile.region = order.shipping_region
                     updated_profile = True
                 if updated_profile:
                     profile.save()
@@ -534,4 +538,3 @@ def payment_failure(request, pk):
 
             messages.error(request, 'El pago fue cancelado o rechazado por la pasarela. La orden ha sido cancelada.')
     return redirect('item_list')
-
