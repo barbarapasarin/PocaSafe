@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login
 from django.contrib.auth.models import User
@@ -78,7 +79,6 @@ def resolve_dispute(request, pk):
                 order.save()
                 order.item.save()
 
-                # 📝 Registro de Auditoría Inmutable
                 EscrowAuditLog.objects.create(
                     order=order,
                     user=request.user,
@@ -92,7 +92,6 @@ def resolve_dispute(request, pk):
                 order.save()
                 order.item.save()
 
-                # 📝 Registro de Auditoría Inmutable
                 EscrowAuditLog.objects.create(
                     order=order,
                     user=request.user,
@@ -125,7 +124,16 @@ def register(request):
 
 
 def item_list(request):
-    """Vista principal: Catálogo con soporte de filtros por categoría, tag y texto"""
+    """Vista principal: Catálogo con liberación de reservas expiradas y soporte de filtros"""
+    # Liberar automáticamente ítems cuya reserva pendiente superó los 15 minutos
+    expired_cutoff = timezone.now() - timedelta(minutes=15)
+    expired_orders = Order.objects.filter(status='pending', created_at__lt=expired_cutoff)
+    for expired in expired_orders:
+        item = expired.item
+        expired.delete()
+        item.status = 'available'
+        item.save()
+
     query = request.GET.get('q', '').strip()
     category_filter = request.GET.get('category')
     tag_filter = request.GET.get('tag', '').strip()
@@ -157,8 +165,16 @@ def item_list(request):
 
 
 def item_detail(request, pk):
-    """Vista de detalle con formulario de compra auto-rellenado desde el Perfil"""
+    """Vista de detalle con liberación automática de reservas expiradas (15 min)"""
     item = get_object_or_404(CollectibleItem, pk=pk)
+
+    existing_order = Order.objects.filter(item=item).first()
+    if existing_order and existing_order.status == 'pending':
+        if timezone.now() - existing_order.created_at > timedelta(minutes=15):
+            existing_order.delete()
+            item.status = 'available'
+            item.save()
+            existing_order = None
 
     initial_data = {}
     if request.user.is_authenticated:
@@ -200,18 +216,39 @@ def item_create(request):
 
 @login_required
 def buy_item(request, pk):
-    """Crea la orden en estado pendiente y procesa pago vía Mercado Pago SDK (Sandbox)"""
+    """Crea la orden en estado pendiente (reservando el ítem 15 min) y procesa pago"""
     if request.method == 'POST':
         with transaction.atomic():
             item = get_object_or_404(CollectibleItem.objects.select_for_update(), pk=pk)
 
-            if item.status != 'available':
-                messages.error(request, 'Este artículo ya no está disponible.')
-                return redirect('item_list')
-
             if item.seller == request.user:
                 messages.error(request, 'No puedes comprar tu propia publicación.')
                 return redirect('item_detail', pk=item.pk)
+
+            existing_order = Order.objects.filter(item=item).first()
+            if existing_order:
+                if existing_order.status == 'pending':
+                    if existing_order.buyer == request.user:
+                        messages.info(request, 'Ya tienes una reserva pendiente para este artículo. Continúa con el pago.')
+                        return redirect('order_sandbox_pay', pk=existing_order.pk)
+                    elif timezone.now() - existing_order.created_at <= timedelta(minutes=15):
+                        messages.warning(request, 'Otro coleccionista tiene reservado este artículo en proceso de pago.')
+                        return redirect('item_detail', pk=item.pk)
+                    else:
+                        existing_order.delete()
+                        item.status = 'available'
+                        item.save()
+                elif existing_order.status == 'cancelled':
+                    existing_order.delete()
+                    item.status = 'available'
+                    item.save()
+                else:
+                    messages.error(request, 'Este artículo ya no está disponible.')
+                    return redirect('item_list')
+
+            if item.status != 'available':
+                messages.error(request, 'Este artículo ya no está disponible.')
+                return redirect('item_list')
 
             form = OrderCreateForm(request.POST)
             if form.is_valid():
@@ -220,6 +257,10 @@ def buy_item(request, pk):
                 order.buyer = request.user
                 order.status = 'pending'
                 order.save()
+
+                # Reservar ítem mientras se concreta el pago
+                item.status = 'in_escrow'
+                item.save()
 
                 # Guardar datos en el perfil si faltaban
                 profile, _ = Profile.objects.get_or_create(user=request.user)
@@ -242,11 +283,10 @@ def buy_item(request, pk):
                 if updated_profile:
                     profile.save()
 
-                # 📝 Registro de Auditoría Inmutable
                 EscrowAuditLog.objects.create(
                     order=order,
                     user=request.user,
-                    action=f"🛒 Orden creada en estado pendiente por ${item.price} CLP."
+                    action=f"🛒 Orden creada y artículo reservado por 15 min (${item.price} CLP)."
                 )
 
                 # --- INTEGRACIÓN CON MERCADO PAGO SDK ---
@@ -333,7 +373,7 @@ def confirm_delivery(request, pk):
             EscrowAuditLog.objects.create(
                 order=order,
                 user=request.user,
-                action=f"✅ Comprador confirmó recepción conforme. Fondos liberados al vendedor."
+                action="✅ Comprador confirmó recepción conforme. Fondos liberados al vendedor."
             )
 
             messages.success(request, f'¡Recepción confirmada para la Orden #{order.pk}! Fondos liberados al vendedor.')
@@ -520,21 +560,21 @@ def payment_success(request, pk):
 
 @login_required
 def payment_failure(request, pk):
-    """Maneja el rechazo o cancelación del pago"""
+    """Maneja el rechazo o cancelación del pago liberando el coleccionable"""
     order = get_object_or_404(Order, pk=pk, buyer=request.user)
     if order.status == 'pending':
         with transaction.atomic():
-            order.status = 'cancelled'
-            order.item.status = 'available'
-            order.save()
-            order.item.save()
+            item = order.item
+            order_id = order.pk
+            order.delete()
+            item.status = 'available'
+            item.save()
 
-            # 📝 Registro de Auditoría Inmutable
             EscrowAuditLog.objects.create(
-                order=order,
+                order=None,
                 user=request.user,
-                action=f"❌ Pago cancelado o rechazado. Orden anulada y coleccionable liberado."
+                action=f"❌ Pago cancelado o rechazado en Orden #{order_id}. Coleccionable '{item.title}' liberado."
             )
 
-            messages.error(request, 'El pago fue cancelado o rechazado por la pasarela. La orden ha sido cancelada.')
+            messages.error(request, 'El pago fue cancelado o rechazado por la pasarela. El artículo volvió a estar disponible.')
     return redirect('item_list')
