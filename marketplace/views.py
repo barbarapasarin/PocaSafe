@@ -534,3 +534,4 @@ def payment_failure(request, pk):
 
             messages.error(request, 'El pago fue cancelado o rechazado por la pasarela. La orden ha sido cancelada.')
     return redirect('item_list')
+
