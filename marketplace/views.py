@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Sum, Q
 from django.utils import timezone
-from django.conf import settings 
+from django.conf import settings
 import mercadopago
 
 from .models import CollectibleItem, Order, Profile, Review, EscrowAuditLog
@@ -23,11 +23,11 @@ from .forms import (
 @login_required
 def open_dispute(request, pk):
     order = get_object_or_404(Order, pk=pk, buyer=request.user)
-    
+
     if order.status not in ['paid_escrow', 'shipped']:
         messages.error(request, 'No es posible abrir disputa en el estado actual de la orden.')
         return redirect('order_detail', pk=order.pk)
-        
+
     if request.method == 'POST':
         reason = request.POST.get('dispute_reason', '').strip()
         if reason:
@@ -36,14 +36,17 @@ def open_dispute(request, pk):
                 order.dispute_reason = reason
                 order.dispute_created_at = timezone.now()
                 order.save()
-                
+
                 EscrowAuditLog.objects.create(
-                    order=order, 
-                    user=request.user, 
+                    order=order,
+                    user=request.user,
                     action=f"⚠️ Disputa abierta por el comprador. Motivo: {reason}."
                 )
 
-                messages.warning(request, f'Se ha abierto una disputa formal para la Orden #{order.pk}. Los fondos quedan congelados hasta mediación.')
+                messages.warning(
+                    request,
+                    f'Se ha abierto una disputa formal para la Orden #{order.pk}. Los fondos quedan congelados hasta mediación.'
+                )
                 return redirect('order_detail', pk=order.pk)
         else:
             messages.error(request, 'Debes detallar el motivo del reclamo.')
@@ -62,11 +65,11 @@ def dispute_dashboard(request):
 def resolve_dispute(request, pk):
     """Permite al mediador resolver: liberar fondos al vendedor o reembolsar al comprador"""
     order = get_object_or_404(Order, pk=pk, status='disputed')
-    
+
     if request.method == 'POST':
         resolution = request.POST.get('resolution')  # 'release_seller' o 'refund_buyer'
         admin_notes = request.POST.get('admin_notes', '').strip()
-        
+
         with transaction.atomic():
             order.admin_notes = admin_notes
             if resolution == 'release_seller':
@@ -74,30 +77,30 @@ def resolve_dispute(request, pk):
                 order.item.status = 'sold'
                 order.save()
                 order.item.save()
-                
+
                 # 📝 Registro de Auditoría Inmutable
                 EscrowAuditLog.objects.create(
-                    order=order, 
-                    user=request.user, 
+                    order=order,
+                    user=request.user,
                     action=f"⚖️ Mediación resuelta por admin: Fondos liberados al vendedor. Notas: {admin_notes}"
                 )
-                
+
                 messages.success(request, f'Disputa #{order.pk} resuelta: Fondos liberados al vendedor.')
             elif resolution == 'refund_buyer':
                 order.status = 'cancelled'
                 order.item.status = 'available'
                 order.save()
                 order.item.save()
-                
+
                 # 📝 Registro de Auditoría Inmutable
                 EscrowAuditLog.objects.create(
-                    order=order, 
-                    user=request.user, 
+                    order=order,
+                    user=request.user,
                     action=f"⚖️ Mediación resuelta por admin: Reembolso al comprador. Notas: {admin_notes}"
                 )
-                
+
                 messages.info(request, f'Disputa #{order.pk} resuelta: Fondos devueltos al comprador.')
-                
+
             return redirect('dispute_dashboard')
 
     return render(request, 'marketplace/dispute_resolve.html', {'order': order})
@@ -137,8 +140,8 @@ def item_list(request):
 
     if query:
         items = items.filter(
-            Q(title__icontains=query) | 
-            Q(description__icontains=query) | 
+            Q(title__icontains=query) |
+            Q(description__icontains=query) |
             Q(tags__icontains=query)
         )
 
@@ -156,7 +159,7 @@ def item_list(request):
 def item_detail(request, pk):
     """Vista de detalle con formulario de compra auto-rellenado desde el Perfil"""
     item = get_object_or_404(CollectibleItem, pk=pk)
-    
+
     initial_data = {}
     if request.user.is_authenticated:
         profile, _ = Profile.objects.get_or_create(user=request.user)
@@ -168,7 +171,7 @@ def item_detail(request, pk):
             'shipping_address': profile.address,
             'shipping_city': profile.city,
         }
-        
+
     order_form = OrderCreateForm(initial=initial_data)
     return render(request, 'marketplace/item_detail.html', {
         'item': item,
@@ -190,7 +193,7 @@ def item_create(request):
             return redirect('item_detail', pk=new_item.pk)
     else:
         form = CollectibleItemForm()
-        
+
     return render(request, 'marketplace/item_form.html', {'form': form})
 
 
@@ -200,15 +203,15 @@ def buy_item(request, pk):
     if request.method == 'POST':
         with transaction.atomic():
             item = get_object_or_404(CollectibleItem.objects.select_for_update(), pk=pk)
-            
+
             if item.status != 'available':
                 messages.error(request, 'Este artículo ya no está disponible.')
                 return redirect('item_list')
-                
+
             if item.seller == request.user:
                 messages.error(request, 'No puedes comprar tu propia publicación.')
                 return redirect('item_detail', pk=item.pk)
-                
+
             form = OrderCreateForm(request.POST)
             if form.is_valid():
                 order = form.save(commit=False)
@@ -216,7 +219,7 @@ def buy_item(request, pk):
                 order.buyer = request.user
                 order.status = 'pending'
                 order.save()
-                
+
                 # Guardar datos en el perfil si faltaban
                 profile, _ = Profile.objects.get_or_create(user=request.user)
                 updated_profile = False
@@ -237,8 +240,8 @@ def buy_item(request, pk):
 
                 # 📝 Registro de Auditoría Inmutable
                 EscrowAuditLog.objects.create(
-                    order=order, 
-                    user=request.user, 
+                    order=order,
+                    user=request.user,
                     action=f"🛒 Orden creada en estado pendiente por ${item.price} CLP."
                 )
 
@@ -284,7 +287,23 @@ def buy_item(request, pk):
 def order_detail(request, pk):
     """Vista de seguimiento de la custodia lógica"""
     order = get_object_or_404(Order, pk=pk)
-    return render(request, 'marketplace/order_detail.html', {'order': order})
+    if not (
+        request.user == order.buyer
+        or request.user == order.item.seller
+        or request.user.is_staff
+    ):
+        messages.error(request, 'No tienes permiso para ver esta orden.')
+        return redirect('item_list')
+
+    audit_logs = EscrowAuditLog.objects.filter(order=order).order_by('-timestamp')
+    return render(
+        request,
+        'marketplace/order_detail.html',
+        {
+            'order': order,
+            'audit_logs': audit_logs,
+        },
+    )
 
 
 @login_required
@@ -297,25 +316,25 @@ def my_orders(request):
 @login_required
 def confirm_delivery(request, pk):
     order = get_object_or_404(Order, pk=pk, buyer=request.user)
-    
+
     if request.method == 'POST':
         with transaction.atomic():
             order.status = 'delivered'
             order.save()
-            
+
             item = order.item
             item.status = 'sold'
             item.save()
-            
+
             EscrowAuditLog.objects.create(
-                order=order, 
-                user=request.user, 
+                order=order,
+                user=request.user,
                 action=f"✅ Comprador confirmó recepción conforme. Fondos liberados al vendedor."
             )
 
             messages.success(request, f'¡Recepción confirmada para la Orden #{order.pk}! Fondos liberados al vendedor.')
             return redirect('order_detail', pk=order.pk)
-            
+
     return redirect('order_detail', pk=order.pk)
 
 
@@ -324,7 +343,7 @@ def my_sales(request):
     """Muestra los ítems publicados, ventas y balance financiero del vendedor"""
     my_items = CollectibleItem.objects.filter(seller=request.user).order_by('-created_at')
     sales_orders = Order.objects.filter(item__seller=request.user).order_by('-created_at')
-    
+
     escrow_balance = sales_orders.filter(
         status__in=['paid_escrow', 'shipped']
     ).aggregate(total=Sum('item__price'))['total'] or 0
@@ -332,7 +351,7 @@ def my_sales(request):
     released_balance = sales_orders.filter(
         status='delivered'
     ).aggregate(total=Sum('item__price'))['total'] or 0
-    
+
     return render(request, 'marketplace/my_sales.html', {
         'my_items': my_items,
         'sales_orders': sales_orders,
@@ -344,24 +363,24 @@ def my_sales(request):
 @login_required
 def mark_as_shipped(request, pk):
     order = get_object_or_404(Order, pk=pk, item__seller=request.user)
-    
+
     if request.method == 'POST':
         tracking = request.POST.get('tracking_number', '').strip()
         if tracking:
             order.tracking_number = tracking
             order.status = 'shipped'
             order.save()
-            
+
             EscrowAuditLog.objects.create(
-                order=order, 
-                user=request.user, 
+                order=order,
+                user=request.user,
                 action=f"📦 Vendedor marcó orden como enviada con tracking: {tracking}."
             )
 
             messages.success(request, f'Orden #{order.pk} marcada como enviada con tracking: {tracking}')
         else:
             messages.error(request, 'Debes ingresar un número de seguimiento válido.')
-            
+
     return redirect('order_detail', pk=order.pk)
 
 
@@ -369,11 +388,11 @@ def mark_as_shipped(request, pk):
 def leave_review(request, pk):
     """Permite al comprador calificar al vendedor tras finalizar la orden"""
     order = get_object_or_404(Order, pk=pk, buyer=request.user, status='delivered')
-    
+
     if hasattr(order, 'review'):
         messages.info(request, 'Ya has calificado esta transacción.')
         return redirect('order_detail', pk=order.pk)
-        
+
     if request.method == 'POST':
         form = ReviewForm(request.POST)
         if form.is_valid():
@@ -386,7 +405,7 @@ def leave_review(request, pk):
             return redirect('order_detail', pk=order.pk)
     else:
         form = ReviewForm()
-        
+
     return render(request, 'marketplace/review_form.html', {'form': form, 'order': order})
 
 
@@ -411,7 +430,7 @@ def user_profile(request, username):
     profile, _ = Profile.objects.get_or_create(user=user_target)
     items = CollectibleItem.objects.filter(seller=user_target, status='available').order_by('-created_at')
     reviews = Review.objects.filter(reviewed_user=user_target).order_by('-created_at')
-    
+
     profile_form = None
     if request.user.is_authenticated and request.user == user_target:
         if request.method == 'POST':
@@ -444,7 +463,7 @@ def user_profile(request, username):
 def item_edit(request, pk):
     """Permite al vendedor editar una publicación propia si aún está disponible"""
     item = get_object_or_404(CollectibleItem, pk=pk, seller=request.user)
-    
+
     if item.status != 'available':
         messages.error(request, 'No puedes editar un artículo que ya está en proceso de compra o vendido.')
         return redirect('item_detail', pk=item.pk)
@@ -457,7 +476,7 @@ def item_edit(request, pk):
             return redirect('item_detail', pk=item.pk)
     else:
         form = CollectibleItemForm(instance=item)
-        
+
     return render(request, 'marketplace/item_form.html', {'form': form, 'edit_mode': True})
 
 
@@ -477,18 +496,21 @@ def payment_success(request, pk):
         with transaction.atomic():
             order.status = 'paid_escrow'
             order.save()
-            
+
             item = order.item
             item.status = 'in_escrow'
             item.save()
 
             EscrowAuditLog.objects.create(
-                order=order, 
-                user=request.user, 
+                order=order,
+                user=request.user,
                 action=f"💰 Pago aprobado y fondos retenidos en custodia por ${order.item.price} CLP."
             )
 
-            messages.success(request, f'¡Pago aprobado! Fondos retenidos exitosamente en Custodia Segura (Escrow) para la Orden #{order.pk}.')
+            messages.success(
+                request,
+                f'¡Pago aprobado! Fondos retenidos exitosamente en Custodia Segura (Escrow) para la Orden #{order.pk}.'
+            )
     return redirect('order_detail', pk=order.pk)
 
 
@@ -497,17 +519,18 @@ def payment_failure(request, pk):
     """Maneja el rechazo o cancelación del pago"""
     order = get_object_or_404(Order, pk=pk, buyer=request.user)
     if order.status == 'pending':
-        order.status = 'cancelled'
-        order.item.status = 'available'
-        order.save()
-        order.item.save()
+        with transaction.atomic():
+            order.status = 'cancelled'
+            order.item.status = 'available'
+            order.save()
+            order.item.save()
 
-        # 📝 Registro de Auditoría Inmutable
-        EscrowAuditLog.objects.create(
-            order=order, 
-            user=request.user, 
-            action=f"❌ Pago cancelado o rechazado. Orden anulada y coleccionable liberado."
-        )
+            # 📝 Registro de Auditoría Inmutable
+            EscrowAuditLog.objects.create(
+                order=order,
+                user=request.user,
+                action=f"❌ Pago cancelado o rechazado. Orden anulada y coleccionable liberado."
+            )
 
-        messages.error(request, 'El pago fue cancelado o rechazado por la pasarela. La orden ha sido cancelada.')
+            messages.error(request, 'El pago fue cancelado o rechazado por la pasarela. La orden ha sido cancelada.')
     return redirect('item_list')

@@ -55,7 +55,7 @@ ROOT_URLCONF = 'pocasafe_core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -102,9 +102,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Requerido explícitamente por django-cloudinary-storage en collectstatic:
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-
 # Configuración de Cloudinary
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
@@ -132,5 +129,8 @@ LOGOUT_REDIRECT_URL = 'item_list'
 # MercadoPago y URLs de Retorno
 MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN', '')
 
-# URL Base del sitio para los webhooks y redirecciones de pago (Usa tu dominio de Render en producción)
 SITE_URL = os.environ.get('SITE_URL', 'https://pocasafe.onrender.com')
+
+CSRF_TRUSTED_ORIGINS = [
+    os.environ.get('SITE_URL', 'https://pocasafe.onrender.com'),
+]

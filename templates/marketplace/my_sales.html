@@ -103,23 +103,25 @@
             {% if my_items %}
                 <div class="columns is-multiline">
                     {% for item in my_items %}
-                    <div class="column is-one-quarter">
-                        <div class="card" style="border-radius: 6px; overflow: hidden;">
-                            <div class="card-image">
-                                <figure class="image is-4by3">
+                    <div class="column is-one-quarter-desktop is-one-third-tablet">
+                        <div class="card" style="border-radius: 8px; overflow: hidden; height: 100%; display: flex; flex-direction: column;">
+                            <div class="card-image" style="background-color: #f5f5f5; padding: 8px;">
+                                <div style="aspect-ratio: 3 / 4; width: 100%; overflow: hidden; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
                                     {% if item.image %}
-                                        <img src="{{ item.image.url }}" alt="{{ item.title }}" style="object-fit: cover;">
+                                        <img src="{{ item.image.url }}" alt="{{ item.title }}" style="width: 100%; height: 100%; object-fit: contain;">
                                     {% else %}
-                                        <img src="https://via.placeholder.com/250x180?text=Sin+Foto" alt="Sin foto">
+                                        <img src="https://via.placeholder.com/250x333?text=Sin+Foto" alt="Sin foto" style="width: 100%; height: 100%; object-fit: contain;">
                                     {% endif %}
-                                </figure>
+                                </div>
                             </div>
-                            <div class="card-content p-3">
-                                <span class="tag is-small {% if item.status == 'available' %}is-success{% elif item.status == 'in_escrow' %}is-warning{% else %}is-danger{% endif %} is-light mb-1">
-                                    {{ item.get_status_display }}
-                                </span>
-                                <p class="has-text-weight-bold is-size-6">{{ item.title }}</p>
-                                <p class="has-text-success has-text-weight-bold">${{ item.price }} CLP</p>
+                            <div class="card-content p-3" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <span class="tag is-small {% if item.status == 'available' %}is-success{% elif item.status == 'in_escrow' %}is-warning{% else %}is-danger{% endif %} is-light mb-1">
+                                        {{ item.get_status_display }}
+                                    </span>
+                                    <p class="has-text-weight-bold is-size-6">{{ item.title }}</p>
+                                    <p class="has-text-success has-text-weight-bold">${{ item.price }} CLP</p>
+                                </div>
                                 <a href="{% url 'item_detail' item.pk %}" class="button is-small is-fullwidth is-light mt-2">
                                     Ver Ficha / Gestionar
                                 </a>

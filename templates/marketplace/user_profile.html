@@ -79,12 +79,23 @@
       {% if items %}
         <div class="columns is-multiline">
           {% for item in items %}
-            <div class="column is-6">
-              <div class="card">
-                <div class="card-content py-3 px-4">
-                  <span class="tag is-info is-light is-small mb-1">{{ item.get_category_display }}</span>
-                  <p class="title is-6 mb-1">{{ item.title }}</p>
-                  <p class="subtitle is-6 has-text-success has-text-weight-bold mb-2">${{ item.price }} CLP</p>
+            <div class="column is-4-desktop is-6-tablet">
+              <div class="card" style="border-radius: 8px; overflow: hidden; height: 100%; display: flex; flex-direction: column;">
+                <div style="background-color: #f5f5f5; padding: 8px;">
+                  <div style="aspect-ratio: 3 / 4; width: 100%; overflow: hidden; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                    {% if item.image %}
+                      <img src="{{ item.image.url }}" alt="{{ item.title }}" style="width: 100%; height: 100%; object-fit: contain;">
+                    {% else %}
+                      <img src="https://via.placeholder.com/250x333?text=Sin+Foto" alt="Sin foto" style="width: 100%; height: 100%; object-fit: contain;">
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="card-content py-3 px-4" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <span class="tag is-info is-light is-small mb-1">{{ item.get_category_display }}</span>
+                    <p class="title is-6 mb-1">{{ item.title }}</p>
+                    <p class="subtitle is-6 has-text-success has-text-weight-bold mb-2">${{ item.price }} CLP</p>
+                  </div>
                   <a href="{% url 'item_detail' item.pk %}" class="button is-small is-link is-light is-fullwidth">
                     Ver Detalle
                   </a>

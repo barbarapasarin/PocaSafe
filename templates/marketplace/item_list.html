@@ -63,14 +63,14 @@
     {% for item in items %}
     <div class="column is-one-quarter-desktop is-one-third-tablet">
         <div class="card" style="border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 100%;">
-            <div class="card-image">
-                <figure class="image">
+            <div class="card-image" style="background-color: #f5f5f5; padding: 8px;">
+                <div style="aspect-ratio: 3 / 4; width: 100%; overflow: hidden; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
                     {% if item.image %}
-                        <img src="{{ item.image.url }}" alt="{{ item.title }}">
+                        <img src="{{ item.image.url }}" alt="{{ item.title }}" style="width: 100%; height: 100%; object-fit: contain;">
                     {% else %}
-                        <img src="https://via.placeholder.com/300x250?text=Sin+Imagen" alt="Sin imagen">
+                        <img src="https://via.placeholder.com/300x400?text=Sin+Imagen" alt="Sin imagen" style="width: 100%; height: 100%; object-fit: contain;">
                     {% endif %}
-                </figure>
+                </div>
             </div>
             <div class="card-content" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
@@ -83,13 +83,8 @@
                     
                     <p class="title is-5 mb-1">{{ item.title }}</p>
                     
-                    <!-- Muestra de tags si existen -->
                     {% if item.tags %}
-                        <div class="tags mb-2">
-                            {% for tag in item.tags.split %}
-                                <span class="tag is-white is-size-7 p-0 mr-1 has-text-grey">#{{ tag|cut:',' }}</span>
-                            {% endfor %}
-                        </div>
+                        <p class="is-size-7 has-text-grey mb-2">{{ item.tags }}</p>
                     {% endif %}
 
                     <p class="is-size-7 has-text-grey mb-3">
