@@ -123,9 +123,11 @@ def register(request):
     return render(request, 'marketplace/register.html', {'form': form})
 
 
+from collections import Counter
+
+
 def item_list(request):
-    """Vista principal: Catálogo con liberación de reservas expiradas y soporte de filtros"""
-    # Liberar automáticamente ítems cuya reserva pendiente superó los 15 minutos
+    """Vista principal: Catálogo con filtros dinámicos basados en etiquetas reales"""
     expired_cutoff = timezone.now() - timedelta(minutes=15)
     expired_orders = Order.objects.filter(status='pending', created_at__lt=expired_cutoff)
     for expired in expired_orders:
@@ -138,7 +140,19 @@ def item_list(request):
     category_filter = request.GET.get('category')
     tag_filter = request.GET.get('tag', '').strip()
 
-    items = CollectibleItem.objects.filter(status='available').order_by('-created_at')
+    available_items = CollectibleItem.objects.filter(status='available')
+    items = available_items.order_by('-created_at')
+
+    # Calcular las etiquetas más usadas entre los ítems disponibles (top 8 por popularidad)
+    tag_counter = Counter()
+    for raw_tags in available_items.values_list('tags', flat=True):
+        if raw_tags:
+            for part in raw_tags.split(','):
+                clean_tag = part.strip()
+                if clean_tag:
+                    tag_counter[clean_tag] += 1
+
+    featured_tags = [tag for tag, _ in tag_counter.most_common(8)]
 
     if category_filter:
         items = items.filter(category=category_filter)
@@ -152,8 +166,6 @@ def item_list(request):
             Q(description__icontains=query) |
             Q(tags__icontains=query)
         )
-
-    featured_tags = ['BTS', 'ATEEZ', 'RM', 'San', 'Seonghwa', 'Album PC', 'Pikachu']
 
     return render(request, 'marketplace/item_list.html', {
         'items': items,
